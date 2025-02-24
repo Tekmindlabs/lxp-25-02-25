@@ -1,12 +1,11 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { ChevronRight } from "lucide-react";
 
+import React from "react";
+
 interface PageProps {
-	params: {
-		role: string;
-		id: string;
-	};
-	children: React.ReactNode;
+  params: { role: string; id: string };
+  children: React.ReactNode;
 }
 
 export default function TeacherProfileLayout({ params, children }: PageProps) {

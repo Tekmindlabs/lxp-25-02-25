@@ -255,12 +255,6 @@ export const teacherRouter = createTRPCRouter({
 									class: {
 										include: {
 											classGroup: true,
-											students: true,
-											teachers: {
-												include: {
-													teacher: true
-												}
-											},
 											timetables: {
 												include: {
 													periods: {
@@ -271,14 +265,45 @@ export const teacherRouter = createTRPCRouter({
 														}
 													}
 												}
+											},
+											students: true,
+											teachers: {
+												include: {
+													teacher: true
+												}
 											}
-										}
+										},
 									}
 								}
 							}
 						}
 					}
 				}
+			});
+
+			if (!teacher) {
+				throw new Error("Teacher not found");
+			}
+
+			return teacher;
+		}),
+
+	getTeacher: protectedProcedure
+		.input(z.string())
+		.query(async ({ ctx, input }) => {
+			const teacher = await ctx.prisma.user.findFirst({
+				where: { 
+					id: input,
+					userType: UserType.TEACHER,
+				},
+				include: {
+					teacherProfile: {
+						include: {
+							subjects: true,
+							classes: true,
+						},
+					},
+				},
 			});
 
 			if (!teacher) {
@@ -398,23 +423,6 @@ export const teacherRouter = createTRPCRouter({
 									class: {
 										include: {
 											classGroup: true,
-											timetables: {
-												include: {
-													periods: {
-														include: {
-															subject: true,
-															classroom: true,
-															teacher: true
-														}
-													}
-												}
-											},
-											students: true,
-											teachers: {
-												include: {
-													teacher: true
-												}
-											}
 										},
 									},
 								},
