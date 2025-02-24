@@ -27,7 +27,7 @@ export default async function EditTeacherPage({
   try {
     // Fetch initial data server-side
     const [teacher, subjects, classes] = await Promise.all([
-      api.teacher.getTeacher.query(teacherId),
+      api.teacher.getTeacher.query({ id: teacherId }),
       api.subject.searchSubjects.query({}),
       api.class.searchClasses.query({}),
     ]);

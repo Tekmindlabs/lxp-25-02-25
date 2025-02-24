@@ -289,11 +289,11 @@ export const teacherRouter = createTRPCRouter({
 		}),
 
 	getTeacher: protectedProcedure
-		.input(z.string())
+		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const teacher = await ctx.prisma.user.findFirst({
 				where: { 
-					id: input,
+					id: input.id,
 					userType: UserType.TEACHER,
 				},
 				include: {
@@ -307,7 +307,10 @@ export const teacherRouter = createTRPCRouter({
 			});
 
 			if (!teacher) {
-				throw new Error("Teacher not found");
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Teacher not found',
+				});
 			}
 
 			return teacher;

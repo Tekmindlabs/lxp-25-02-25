@@ -206,46 +206,67 @@ export const programRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1, "Name is required"),
         description: z.string().optional(),
-        calendarId: z.string(),
+        calendarId: z.string().min(1, "Calendar ID is required"),
         coordinatorId: z.string().optional(),
-        campusIds: z.array(z.string()),
+        campusIds: z.array(z.string().min(1)).min(1, "At least one campus is required"),
         status: z.nativeEnum(Status).default(Status.ACTIVE),
         termSystem: termSystemInput.optional(),
         assessmentSystem: z.object({
           type: z.enum(["MARKING_SCHEME", "RUBRIC", "HYBRID", "CGPA"]),
           markingScheme: z.object({
-          maxMarks: z.number().min(0),
-          passingMarks: z.number().min(0),
-          gradingScale: z.array(z.object({
-            grade: z.string(),
-            minPercentage: z.number().min(0).max(100),
-            maxPercentage: z.number().min(0).max(100)
-          }))
+            maxMarks: z.number().min(0),
+            passingMarks: z.number().min(0),
+            gradingScale: z.array(z.object({
+              grade: z.string().min(1),
+              minPercentage: z.number().min(0).max(100),
+              maxPercentage: z.number().min(0).max(100)
+            })).min(1, "At least one grading scale is required")
           }).optional(),
           rubric: z.object({
-          name: z.string(),
-          description: z.string().optional(),
-          criteria: z.array(z.object({
-            name: z.string(),
+            name: z.string().min(1),
             description: z.string().optional(),
-            levels: z.array(z.object({
-            name: z.string(),
-            points: z.number().min(0),
-            description: z.string().optional()
-            }))
-          }))
+            criteria: z.array(z.object({
+              name: z.string().min(1),
+              description: z.string().optional(),
+              levels: z.array(z.object({
+                name: z.string().min(1),
+                points: z.number().min(0),
+                description: z.string().optional()
+              })).min(1, "At least one level is required")
+            })).min(1, "At least one criterion is required")
           }).optional(),
           cgpaConfig: z.object({
-          gradePoints: z.array(z.object({
-            grade: z.string(),
-            points: z.number(),
-            minPercentage: z.number().min(0).max(100),
-            maxPercentage: z.number().min(0).max(100)
-          })),
-          semesterWeightage: z.boolean(),
-          includeBacklogs: z.boolean()
+            gradePoints: z.array(z.object({
+              grade: z.string().min(1),
+              points: z.number().min(0),
+              minPercentage: z.number().min(0).max(100),
+              maxPercentage: z.number().min(0).max(100)
+            })).min(1, "At least one grade point is required"),
+            semesterWeightage: z.boolean(),
+            includeBacklogs: z.boolean()
           }).optional()
         }).optional()
+          .refine(
+            (data) => {
+              if (!data) return true;
+              // Ensure at least one of markingScheme, rubric, or cgpaConfig is provided based on type
+              switch (data.type) {
+                case "MARKING_SCHEME":
+                  return !!data.markingScheme;
+                case "RUBRIC":
+                  return !!data.rubric;
+                case "CGPA":
+                  return !!data.cgpaConfig;
+                case "HYBRID":
+                  return !!(data.markingScheme || data.rubric || data.cgpaConfig);
+                default:
+                  return false;
+              }
+            },
+            {
+              message: "Assessment system configuration must match the selected type"
+            }
+          )
       })
     )
 
