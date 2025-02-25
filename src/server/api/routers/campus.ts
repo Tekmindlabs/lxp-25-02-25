@@ -388,7 +388,7 @@ export const campusRouter = createTRPCRouter({
     .input(z.object({ 
       campusId: z.string(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE", "COMPLETED"]).optional()
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
       const where: Prisma.CampusClassWhereInput = {
@@ -396,37 +396,52 @@ export const campusRouter = createTRPCRouter({
         ...(input.status && { status: input.status }),
         ...(input.search && {
           OR: [
-            { name: { contains: input.search, mode: 'insensitive' } },
-            { code: { contains: input.search, mode: 'insensitive' } },
-          ],
+            { name: { contains: input.search, mode: "insensitive" as const } },
+            { code: { contains: input.search, mode: "insensitive" as const } }
+          ]
         }),
       };
 
-      return ctx.prisma.campusClass.findMany({
+      return ctx.prisma.class.findMany({
         where,
         include: {
           classGroup: {
             include: {
-              program: true
-            }
-          },
-          teacherAllocations: {
-            include: {
-              teacher: {
-                include: {
-                  user: true
+              program: {
+                select: {
+                  name: true
                 }
-              },
-              subject: true
+              }
             }
           },
           _count: {
             select: {
               students: true
             }
+          },
+          teacherAssignments: {
+            include: {
+              teacher: {
+                include: {
+                  user: {
+                    select: {
+                      firstName: true,
+                      lastName: true
+                    }
+                  }
+                }
+              },
+              subject: {
+                select: {
+                  name: true
+                }
+              }
+            }
           }
         },
-        orderBy: { name: "asc" },
+        orderBy: {
+          createdAt: "desc"
+        }
       });
     }),
 
