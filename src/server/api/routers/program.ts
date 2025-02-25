@@ -257,10 +257,10 @@ export const programRouter = createTRPCRouter({
           include: { academicYear: true, terms: true }
         });
 
-        if (!calendar?.academicYear?.id || !calendar.terms[0]?.id) {
+        if (!calendar?.academicYear?.id) {
           throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Calendar must have an academic year and at least one term",
+          message: "Calendar must have an academic year",
           });
         }
 

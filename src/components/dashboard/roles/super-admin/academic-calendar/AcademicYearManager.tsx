@@ -92,7 +92,6 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 							<h3 className="font-semibold">{calendar.name}</h3>
 							<p className="text-sm text-gray-500">{calendar.description}</p>
 							<div className="mt-4">
-								<TermManager calendarId={calendar.id} />
 							</div>
 						</CardContent>
 					</Card>
