@@ -6,7 +6,7 @@ import { DefaultRoles } from "@/utils/permissions";
 import { CampusUserService } from "@/server/services/CampusUserService";
 import { CampusClassService } from "@/server/services/CampusClassService";
 import type { Context } from "../trpc";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 const campusCreateInput = z.object({ 
   name: z.string(),
@@ -266,7 +266,7 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where = {
+      const where: Prisma.ProgramWhereInput = {
         campuses: {
           some: {
             id: input.campusId
@@ -297,22 +297,35 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where = {
+      const where: Prisma.StudentProfileWhereInput = {
         campusId: input.campusId,
         ...(input.status && { status: input.status }),
         ...(input.search && {
           OR: [
-            { 
+            {
               user: {
-                OR: [
-                  { firstName: { contains: input.search, mode: "insensitive" as const } },
-                  { lastName: { contains: input.search, mode: "insensitive" as const } }
-                ]
+                firstName: {
+                  contains: input.search,
+                  mode: "insensitive" as const
+                }
               }
             },
-            { studentId: { contains: input.search, mode: "insensitive" as const } }
+            {
+              user: {
+                lastName: {
+                  contains: input.search,
+                  mode: "insensitive" as const
+                }
+              }
+            },
+            {
+              studentId: {
+                contains: input.search,
+                mode: "insensitive" as const
+              }
+            }
           ]
-        }),
+        })
       };
 
       return ctx.prisma.studentProfile.findMany({
@@ -322,10 +335,8 @@ export const campusRouter = createTRPCRouter({
           class: true
         },
         orderBy: {
-          user: {
-            lastName: "asc"
-          }
-        },
+          createdAt: "desc"
+        }
       });
     }),
 
@@ -336,23 +347,29 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where = {
+      const where: Prisma.TeacherProfileWhereInput = {
         campusId: input.campusId,
         ...(input.status && { status: input.status }),
         ...(input.search && {
           OR: [
-            { 
+            {
               user: {
-                firstName: { contains: input.search, mode: "insensitive" as const }
+                firstName: {
+                  contains: input.search,
+                  mode: "insensitive" as const
+                }
               }
             },
             {
               user: {
-                lastName: { contains: input.search, mode: "insensitive" as const }
+                lastName: {
+                  contains: input.search,
+                  mode: "insensitive" as const
+                }
               }
             }
           ]
-        }),
+        })
       };
 
       return ctx.prisma.teacherProfile.findMany({
@@ -362,10 +379,8 @@ export const campusRouter = createTRPCRouter({
           classes: true
         },
         orderBy: {
-          user: {
-            lastName: "asc"
-          }
-        },
+          createdAt: "desc"
+        }
       });
     }),
 
@@ -376,7 +391,7 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE", "COMPLETED"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where = {
+      const where: Prisma.CampusClassWhereInput = {
         campusId: input.campusId,
         ...(input.status && { status: input.status }),
         ...(input.search && {
@@ -469,10 +484,9 @@ export const campusRouter = createTRPCRouter({
         // Initialize services
         const campusUserService = new CampusUserService(ctx.prisma as PrismaClient);
         const campusClassService = new CampusClassService(
-       ctx.prisma as PrismaClient, 
-       campusUserService
-
-);
+          ctx.prisma as PrismaClient, 
+          campusUserService
+        );
 
         // Check permissions
         const hasPermission = await campusUserService.hasPermission(
