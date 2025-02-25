@@ -1,10 +1,9 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -26,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type AppRouter } from "@/server/api/root";
 
 const createClassSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -38,32 +39,26 @@ const createClassSchema = z.object({
 type CreateClassForm = z.infer<typeof createClassSchema>;
 
 const CreateClassPage: FC = () => {
-  const params = useParams();
-  const campusId = params.id as string;
+  const pathname = usePathname();
+  const campusId = pathname.split("/")[3]; // Get ID from path
   const router = useRouter();
   const { toast } = useToast();
 
   const { data: campus } = api.campus.getById.useQuery(campusId);
-  const { data: classGroups } = api.campus.getClassGroups.useQuery(campusId);
-  const { data: buildings } = api.campus.getBuildings.useQuery(campusId);
-  const { data: rooms } = api.campus.getRooms.useQuery(campusId);
+  const { data: classGroups } = api.campus.getClassGroups.useQuery({ campusId });
+  const { data: buildings } = api.campus.getBuildings.useQuery({ campusId });
+  const { data: rooms } = api.campus.getRooms.useQuery({ campusId });
 
-  const form = useForm<CreateClassForm>({
-    resolver: zodResolver(createClassSchema),
-    defaultValues: {
-      capacity: 30,
-    },
-  });
-
-  const createClassMutation = api.class.create.useMutation({
+  const { mutate: createClass, isPending } = api.class.create.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Class created successfully",
       });
-      router.push(`/dashboard/campus/${campusId}`);
+      router.push(`/dashboard/campus/${campusId}/classes`);
+      router.refresh();
     },
-    onError: (error) => {
+    onError: (error: TRPCClientErrorLike<AppRouter>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -72,21 +67,28 @@ const CreateClassPage: FC = () => {
     },
   });
 
+  const form = useForm<CreateClassForm>({
+    resolver: zodResolver(createClassSchema),
+    defaultValues: {
+      capacity: 30,
+    },
+  });
+
   const onSubmit = (data: CreateClassForm) => {
-    createClassMutation.mutate({
+    createClass({
       ...data,
       campusId,
     });
   };
 
   if (!campus) {
-    return <div>Campus not found</div>;
+    return <div>Loading...</div>;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create Class for {campus.name}</CardTitle>
+        <CardTitle>Create New Class</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -96,7 +98,7 @@ const CreateClassPage: FC = () => {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Class Name</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -111,10 +113,7 @@ const CreateClassPage: FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Class Group</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a class group" />
@@ -138,11 +137,8 @@ const CreateClassPage: FC = () => {
               name="buildingId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Building (Optional)</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>Building</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a building" />
@@ -166,11 +162,8 @@ const CreateClassPage: FC = () => {
               name="roomId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Room (Optional)</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>Room</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a room" />
@@ -179,7 +172,7 @@ const CreateClassPage: FC = () => {
                     <SelectContent>
                       {rooms?.map((room) => (
                         <SelectItem key={room.id} value={room.id}>
-                          {room.number}
+                          {room.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -196,12 +189,10 @@ const CreateClassPage: FC = () => {
                 <FormItem>
                   <FormLabel>Capacity</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(parseInt(e.target.value, 10))
-                      }
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -209,11 +200,7 @@ const CreateClassPage: FC = () => {
               )}
             />
 
-            <Button
-              type="submit"
-              disabled={createClassMutation.isLoading}
-              className="w-full"
-            >
+            <Button type="submit" disabled={isPending}>
               Create Class
             </Button>
           </form>

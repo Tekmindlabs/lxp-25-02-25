@@ -259,91 +259,98 @@ export const campusRouter = createTRPCRouter({
       };
     }),
 
-  getPrograms: publicProcedure
-    .input(z.object({ 
+  getPrograms: protectedProcedure
+    .input(z.object({
       campusId: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where = {
+      const where: Prisma.ProgramWhereInput = {
         campuses: {
           some: {
             id: input.campusId
           }
         },
-        status: input.status,
-        ...(input.search ? {
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
           OR: [
-            { name: { contains: input.search, mode: "insensitive" } },
-            { code: { contains: input.search, mode: "insensitive" } }
-          ]
-        } : {})
+            { name: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } },
+            { code: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } },
+          ],
+        }),
       };
 
       return ctx.prisma.program.findMany({
         where,
         include: {
-          calendar: true,
-          classGroups: true,
-          campuses: true
-        }
+          campuses: true,
+          coordinator: true,
+        },
       });
     }),
 
-  getStudents: publicProcedure
-    .input(z.object({ 
+  getStudents: protectedProcedure
+    .input(z.object({
       campusId: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
+      const where: Prisma.StudentProfileWhereInput = {
+        class: {
+          campusId: input.campusId
+        },
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
+          OR: [
+            { user: { name: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } } },
+            { user: { email: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } } },
+          ],
+        }),
+      };
+
       return ctx.prisma.studentProfile.findMany({
-        where: {
-          campus: {
-            id: input.campusId
-          },
-          status: input.status,
-          ...(input.search ? {
-            user: {
-              OR: [
-                { name: { contains: input.search, mode: "insensitive" } },
-                { email: { contains: input.search, mode: "insensitive" } }
-              ]
-            }
-          } : {})
-        },
+        where,
         include: {
-          user: true
-        }
+          user: true,
+          class: true,
+        },
       });
     }),
 
-  getTeachers: publicProcedure
-    .input(z.object({ 
+  getTeachers: protectedProcedure
+    .input(z.object({
       campusId: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.teacherProfile.findMany({
-        where: {
-          campus: {
-            id: input.campusId
-          },
-          status: input.status,
-          ...(input.search ? {
-            user: {
-              OR: [
-                { name: { contains: input.search, mode: "insensitive" } },
-                { email: { contains: input.search, mode: "insensitive" } }
-              ]
-            }
-          } : {})
+      const where: Prisma.TeacherProfileWhereInput = {
+        classes: {
+          some: {
+            campusId: input.campusId
+          }
         },
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
+          OR: [
+            { user: { name: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } } },
+            { user: { email: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE } } },
+          ],
+        }),
+      };
+
+      return ctx.prisma.teacherProfile.findMany({
+        where,
         include: {
-          user: true
-        }
+          user: true,
+          classes: {
+            include: {
+              subjects: true
+            }
+          },
+        },
       });
     }),
 
@@ -388,6 +395,34 @@ export const campusRouter = createTRPCRouter({
             }
           }
         }
+      });
+    }),
+
+  getClassGroups: protectedProcedure
+    .input(z.object({
+      campusId: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+      search: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const where: Prisma.ClassGroupWhereInput = {
+        classes: {
+          some: {
+            campusId: input.campusId
+          }
+        },
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
+          name: { contains: input.search, mode: Prisma.QueryMode.INSENSITIVE },
+        }),
+      };
+
+      return ctx.prisma.classGroup.findMany({
+        where,
+        include: {
+          classes: true,
+          program: true,
+        },
       });
     }),
 

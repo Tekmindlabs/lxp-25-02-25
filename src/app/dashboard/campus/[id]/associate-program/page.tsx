@@ -1,10 +1,9 @@
 "use client";
 
 import { type FC } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -33,8 +32,8 @@ const associateProgramSchema = z.object({
 type AssociateProgramForm = z.infer<typeof associateProgramSchema>;
 
 const AssociateProgramPage: FC = () => {
-  const searchParams = useSearchParams();
-  const campusId = searchParams.get("id") as string;
+  const pathname = usePathname();
+  const campusId = pathname.split("/")[3]; // Get ID from path
   const router = useRouter();
   const { toast } = useToast();
 
@@ -48,7 +47,7 @@ const AssociateProgramPage: FC = () => {
       router.push(`/dashboard/campus/${campusId}`);
       router.refresh();
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<AppRouter>) => {
       toast({
         title: "Error",
         description: error.message,
