@@ -27,6 +27,7 @@ interface BuildingFormProps {
 	onClose: () => void;
 	building?: Building | null;
 	onSuccess: () => void;
+	campusId: string;
 }
 
 type FormValues = z.infer<typeof buildingSchema>;
@@ -36,6 +37,7 @@ export const BuildingForm = ({
 	onClose,
 	building,
 	onSuccess,
+	campusId,
 }: BuildingFormProps) => {
 	const { toast } = useToast();
 	const form = useForm<FormValues>({
@@ -43,11 +45,10 @@ export const BuildingForm = ({
 		defaultValues: building || {
 			name: "",
 			code: "",
-			campusId: "", // This will need to be selected
+			campusId: campusId,
 		},
 	});
 
-	const { data: campuses } = api.campus.getAll.useQuery();
 	const createMutation = api.building.create.useMutation({
 		onSuccess: () => {
 			toast({
@@ -55,6 +56,7 @@ export const BuildingForm = ({
 				description: "The building has been created successfully",
 			});
 			onSuccess();
+			onClose();
 		},
 	});
 
@@ -65,18 +67,24 @@ export const BuildingForm = ({
 				description: "The building has been updated successfully",
 			});
 			onSuccess();
+			onClose();
 		},
 	});
 
 	const onSubmit = async (values: FormValues) => {
 		try {
+			const dataWithCampusId = {
+				...values,
+				campusId: campusId,
+			};
+
 			if (building) {
 				await updateMutation.mutateAsync({
 					id: building.id,
-					data: values,
+					data: dataWithCampusId,
 				});
 			} else {
-				await createMutation.mutateAsync(values);
+				await createMutation.mutateAsync(dataWithCampusId);
 			}
 		} catch (error) {
 			toast({
@@ -123,29 +131,7 @@ export const BuildingForm = ({
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="campusId"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Campus</FormLabel>
-									<FormControl>
-										<select
-											{...field}
-											className="w-full rounded-md border border-input bg-background px-3 py-2"
-										>
-											<option value="">Select Campus</option>
-											{campuses?.map((campus) => (
-												<option key={campus.id} value={campus.id}>
-													{campus.name}
-												</option>
-											))}
-										</select>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<input type="hidden" {...form.register("campusId")} value={campusId} />
 						<div className="flex justify-end space-x-2">
 							<Button variant="outline" onClick={onClose}>
 								Cancel

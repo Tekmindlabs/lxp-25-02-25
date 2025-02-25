@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import CampusForm from "./CampusForm";
 import { type RouterOutputs } from "@/utils/api";
+import { Settings, Edit } from "lucide-react";
 
 type Campus = RouterOutputs["campus"]["getAll"][number];
 
@@ -101,16 +102,28 @@ export const CampusManagement: FC<CampusManagementProps> = () => {
 												Location: {campus.city}, {campus.state}
 											</p>
 										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleEdit(campus.id);
-											}}
-										>
-											Edit
-										</Button>
+										<div className="flex gap-2">
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={(e) => {
+													e.stopPropagation();
+													router.push(`/dashboard/super-admin/campus/settings?campusId=${campus.id}`);
+												}}
+											>
+												<Settings className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={(e) => {
+													e.stopPropagation();
+													handleEdit(campus.id);
+												}}
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+										</div>
 									</div>
 								</CardContent>
 							</Card>
@@ -134,4 +147,3 @@ export const CampusManagement: FC<CampusManagementProps> = () => {
 };
 
 export default CampusManagement;
-
