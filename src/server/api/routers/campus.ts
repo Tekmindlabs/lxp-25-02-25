@@ -461,7 +461,8 @@ export const campusRouter = createTRPCRouter({
                 include: {
                   user: true
                 }
-              }
+              },
+              subject: true
             }
           },
           _count: {

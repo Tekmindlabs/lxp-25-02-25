@@ -44,7 +44,7 @@ interface CampusClassWithRelations {
       };
     };
     subject: {
-      name: string;
+      name: string | null;
     };
   }>;
 }
@@ -180,7 +180,7 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                                 {teacher.teacher.user.firstName} {teacher.teacher.user.lastName}
                               </span>
                               <span className="text-gray-500">
-                                {teacher.subject.name}
+                                {teacher.subject?.name ?? 'No Subject'}
                               </span>
                             </div>
                           ))}
