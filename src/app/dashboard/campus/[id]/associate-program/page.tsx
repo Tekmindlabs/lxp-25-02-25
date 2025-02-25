@@ -39,7 +39,7 @@ const AssociateProgramPage: FC = () => {
   const { toast } = useToast();
 
   const { data } = api.program.getAll.useQuery({});
-  const { mutate: associateProgram } = api.campus.associateProgram.useMutation({
+  const { mutate } = api.campus.addProgram.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -62,7 +62,7 @@ const AssociateProgramPage: FC = () => {
   });
 
   const onSubmit = (data: AssociateProgramForm) => {
-    associateProgram({
+    mutate({
       campusId,
       programId: data.programId,
     });
