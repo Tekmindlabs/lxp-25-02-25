@@ -158,7 +158,7 @@ export const CampusView: FC<CampusViewProps> = ({ id }) => {
 
         <TabsContent value="programs">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${id}/associate-program`)}>
+            <Button onClick={() => router.push(`/dashboard/super-admin/campus/${id}/associate-program`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Associate Program
             </Button>
@@ -168,7 +168,7 @@ export const CampusView: FC<CampusViewProps> = ({ id }) => {
 
         <TabsContent value="classes">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${id}/classes/new`)}>
+            <Button onClick={() => router.push(`/dashboard/super-admin/campus/${id}/classes/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Create Class
             </Button>
@@ -178,7 +178,7 @@ export const CampusView: FC<CampusViewProps> = ({ id }) => {
 
         <TabsContent value="teachers">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${id}/teachers/new`)}>
+            <Button onClick={() => router.push(`/dashboard/super-admin/campus/${id}/teachers/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Teacher
             </Button>
@@ -188,7 +188,7 @@ export const CampusView: FC<CampusViewProps> = ({ id }) => {
 
         <TabsContent value="students">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${id}/students/new`)}>
+            <Button onClick={() => router.push(`/dashboard/super-admin/campus/${id}/students/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Student
             </Button>
@@ -198,7 +198,7 @@ export const CampusView: FC<CampusViewProps> = ({ id }) => {
 
         <TabsContent value="coordinators">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${id}/coordinators/new`)}>
+            <Button onClick={() => router.push(`/dashboard/super-admin/campus/${id}/coordinators/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Coordinator
             </Button>
