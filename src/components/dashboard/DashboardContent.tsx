@@ -6,8 +6,10 @@ import { DashboardFeature } from "@/types/dashboard";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { RoleLayouts } from "./layouts/RoleLayouts";
 import { DashboardFeatures } from "./features/DashboardFeatures";
+import { api } from "@/trpc/react";
+import type { Program } from "@prisma/client";
 
-export const DashboardContent = ({ role }: { role: string }) => {
+export const DashboardContent = ({ role, campusId }: { role: string; campusId: string }) => {
   const { data: session } = useSession();
   
   // Convert the role to kebab-case for feature lookup
@@ -41,11 +43,11 @@ export const DashboardContent = ({ role }: { role: string }) => {
     .join(' ');
 
   const { data: programs } = api.campus.getInheritedPrograms.useQuery(
-    { campusId: campus.id },
-    { enabled: !!campus }
+    { campusId },
+    { enabled: !!campusId }
   );
 
-  const programNames = programs?.map((program) => program.title) ?? [];
+  const programNames = programs?.map((program: Program) => program.title) ?? [];
 
   return (
     <div className="space-y-6">

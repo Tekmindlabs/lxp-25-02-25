@@ -24,7 +24,6 @@ type ClassStatus = "ACTIVE" | "INACTIVE" | "COMPLETED";
 interface CampusClassWithRelations {
   id: string;
   name: string;
-  code: string;
   status: ClassStatus;
   classGroup: {
     name: string;
@@ -34,8 +33,9 @@ interface CampusClassWithRelations {
   };
   _count: {
     students: number;
+    teachers: number;
   };
-  teacherAllocations: Array<{
+  teachers: Array<{
     id: string;
     teacher: {
       user: {
@@ -140,9 +140,6 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                           <CardTitle className="text-lg">
                             {campusClass.name}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            {campusClass.code}
-                          </p>
                         </div>
                         <Badge
                           variant={
@@ -167,26 +164,26 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                         </div>
                         <div>
                           <span className="font-medium">Students: </span>
-                          {campusClass._count.students}
+                          {campusClass._count?.students ?? 0}
                         </div>
                         <div>
                           <span className="font-medium">Teachers: </span>
-                          <div className="mt-1 space-y-1">
-                            {campusClass.teacherAllocations.map((allocation) => (
-                              <div
-                                key={allocation.id}
-                                className="flex items-center justify-between text-sm"
-                              >
-                                <span>
-                                  {allocation.teacher.user.firstName}{" "}
-                                  {allocation.teacher.user.lastName}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  {allocation.subject.name}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                          {campusClass._count?.teachers ?? 0}
+                        </div>
+                        <div className="mt-1 space-y-1">
+                          {campusClass.teachers.map((teacher) => (
+                            <div
+                              key={teacher.id}
+                              className="flex items-center justify-between text-sm"
+                            >
+                              <span>
+                                {teacher.teacher.user.firstName} {teacher.teacher.user.lastName}
+                              </span>
+                              <span className="text-gray-500">
+                                {teacher.subject.name}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </CardContent>

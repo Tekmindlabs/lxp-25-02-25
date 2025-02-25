@@ -463,6 +463,12 @@ export const campusRouter = createTRPCRouter({
                 }
               }
             }
+          },
+          _count: {
+            select: {
+              students: true,
+              teachers: true
+            }
           }
         },
         orderBy: { name: "asc" }
