@@ -111,7 +111,7 @@ const CampusStudents: FC<CampusStudentsProps> = ({ campusId }) => {
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-lg">
-                            {student.user?.firstName} {student.user?.lastName}
+                            {student.user?.name}
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">
                             {student.studentId}

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { buildingSchema } from "@/server/api/validation/building";
+import { buildingSchema } from "@/types/validation/building";
 import type { z } from "zod";
 
 interface BuildingFormProps {
@@ -131,7 +131,6 @@ export const BuildingForm = ({
 								</FormItem>
 							)}
 						/>
-						<input type="hidden" {...form.register("campusId")} value={campusId} />
 						<div className="flex justify-end space-x-2">
 							<Button variant="outline" onClick={onClose}>
 								Cancel

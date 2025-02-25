@@ -83,7 +83,7 @@ export const FloorManagement = ({ buildingId, onUpdate }: FloorManagementProps) 
                   <Badge variant="outline">{floor.number}</Badge>
                 </CardTitle>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
@@ -109,10 +109,6 @@ export const FloorManagement = ({ buildingId, onUpdate }: FloorManagementProps) 
                   <AccordionContent>
                     <WingManagement
                       floorId={floor.id}
-                      onUpdate={() => {
-                        refetch();
-                        onUpdate?.();
-                      }}
                     />
                   </AccordionContent>
                 </AccordionItem>

@@ -180,9 +180,8 @@ const studentNavItems = [
 
 export default async function RoleLayout({
 	children,
-	params,
+	params: { role },
 }: LayoutProps) {
-
 	const session = await getServerAuthSession();
 
 	if (!session) {
@@ -190,7 +189,7 @@ export default async function RoleLayout({
 	}
 
 	const userRoles = session?.user?.roles?.map((r) => r.toLowerCase()) ?? [];
-	const currentRole = String(params.role).toLowerCase();
+	const currentRole = role.toLowerCase();
 
 	if (!currentRole || !userRoles.includes(currentRole)) {
 		redirect(`/dashboard/${userRoles[0]?.toLowerCase() ?? ''}`);
@@ -211,24 +210,21 @@ export default async function RoleLayout({
 		}
 	};
 
-	const navItems = getNavItems(currentRole);
-	const isSuperAdmin = currentRole === 'super-admin';
+	const navItems = getNavItems(currentRole).map((item) => ({
+		...item,
+		href: item.href.replace('[role]', currentRole),
+	}));
 
 	return (
-		<div className="flex min-h-screen relative">
-			{isSuperAdmin ? (
-				<SuperAdminSidebar />
-			) : (
-				<aside className="w-64 border-r bg-background">
+		<div className="flex min-h-screen flex-col space-y-6">
+			<aside className="fixed inset-y-0 left-0 w-[200px] border-r">
+				<div className="flex h-full flex-col">
 					<SidebarNav items={navItems} />
-				</aside>
-			)}
-			<div className="flex-1 flex flex-col">
-				<main className="flex-1 p-6 lg:ml-0">
-					{children}
-				</main>
+				</div>
+			</aside>
+			<div className="pl-[200px]">
+				<div className="p-8">{children}</div>
 			</div>
 		</div>
 	);
-
 }

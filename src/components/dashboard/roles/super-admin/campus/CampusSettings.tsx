@@ -1,11 +1,20 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BuildingManagement } from "./building/BuildingManagement";
 import { Card } from "@/components/ui/card";
+import { api } from "@/utils/api";
 
-export const CampusSettings = () => {
+interface CampusSettingsProps {
+  campusId: string;
+}
+
+export const CampusSettings = ({ campusId }: CampusSettingsProps) => {
+  const { data: campus } = api.campus.getById.useQuery(campusId);
+
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">Campus Settings</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {campus?.name ? `${campus.name} Settings` : 'Campus Settings'}
+      </h1>
       
       <Card>
         <Tabs defaultValue="buildings" className="w-full">
@@ -15,7 +24,7 @@ export const CampusSettings = () => {
           </TabsList>
           
           <TabsContent value="buildings" className="p-4">
-            <BuildingManagement />
+            <BuildingManagement campusId={campusId} />
           </TabsContent>
           
           <TabsContent value="general" className="p-4">

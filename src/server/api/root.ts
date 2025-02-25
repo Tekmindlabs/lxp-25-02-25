@@ -15,6 +15,9 @@ import { campusRolePermissionRouter } from "./routers/campus-role-permission";
 import { roleRouter } from "./routers/role";
 import { coordinatorRouter } from "./routers/coordinator";
 import { campusClassGroupRouter } from "./routers/campusClassGroup";
+import { buildingRouter } from "./routers/building";
+import { floorRouter } from "./routers/floor";
+import { wingRouter } from "./routers/wing";
 
 export const appRouter = createTRPCRouter({
   academicCalendar: academicCalendarRouter,
@@ -33,6 +36,9 @@ export const appRouter = createTRPCRouter({
   workspace: workspaceRouter,
   coordinator: coordinatorRouter,
   campusClassGroup: campusClassGroupRouter,
+  building: buildingRouter,
+  floor: floorRouter,
+  wing: wingRouter,
 });
 
 export type AppRouter = typeof appRouter;
