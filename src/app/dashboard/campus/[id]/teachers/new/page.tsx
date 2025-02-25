@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams } from "next/navigation";
+import { useParams as useNextParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { X } from "lucide-react";
 
 const createTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -39,13 +42,16 @@ const createTeacherSchema = z.object({
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
 const CreateTeacherPage: FC = () => {
-  const params = useParams();
-  const campusId = params.id as string;
+  const params = useNextParams();
+  const campusId = params?.id as string;
   const router = useRouter();
   const { toast } = useToast();
 
   const { data: campus } = api.campus.getById.useQuery(campusId);
-  const { data: classes } = api.campus.getClasses.useQuery(campusId);
+  const { data: classes } = api.campus.getClasses.useQuery({
+    campusId,
+    status: "ACTIVE",
+  });
   const { data: subjects } = api.subject.getAll.useQuery();
 
   const form = useForm<CreateTeacherForm>({
@@ -56,7 +62,7 @@ const CreateTeacherPage: FC = () => {
     },
   });
 
-  const createTeacherMutation = api.teacher.create.useMutation({
+  const createTeacherMutation = api.teacher.createTeacher.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -64,7 +70,7 @@ const CreateTeacherPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -150,7 +156,7 @@ const CreateTeacherPage: FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {classes?.map((cls) => (
+                      {classes?.map((cls: { id: string; name: string }) => (
                         <SelectItem key={cls.id} value={cls.id}>
                           {cls.name}
                         </SelectItem>

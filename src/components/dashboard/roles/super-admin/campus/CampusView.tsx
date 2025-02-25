@@ -4,7 +4,7 @@ import { type FC, useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { LuMapPin, LuPhone, LuMail, LuCalendar, LuBuilding, LuPlus } from "react-icons/lu";
 import CampusForm from "./CampusForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

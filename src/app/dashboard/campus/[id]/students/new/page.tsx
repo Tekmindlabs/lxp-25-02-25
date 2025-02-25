@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams } from "next/navigation";
+import { useParams as useNextParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useRouter } from "next/navigation";
@@ -48,13 +48,16 @@ const createStudentSchema = z.object({
 type CreateStudentForm = z.infer<typeof createStudentSchema>;
 
 const CreateStudentPage: FC = () => {
-  const params = useParams();
-  const campusId = params.id as string;
+  const params = useNextParams();
+  const campusId = params?.id as string;
   const router = useRouter();
   const { toast } = useToast();
 
   const { data: campus } = api.campus.getById.useQuery(campusId);
-  const { data: classes } = api.campus.getClasses.useQuery(campusId);
+  const { data: classes } = api.campus.getClasses.useQuery({
+    campusId,
+    status: "ACTIVE",
+  });
 
   const form = useForm<CreateStudentForm>({
     resolver: zodResolver(createStudentSchema),
@@ -63,7 +66,7 @@ const CreateStudentPage: FC = () => {
     },
   });
 
-  const createStudentMutation = api.student.create.useMutation({
+  const createStudentMutation = api.student.createStudent.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -71,7 +74,7 @@ const CreateStudentPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -199,7 +202,7 @@ const CreateStudentPage: FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {classes?.map((cls) => (
+                      {classes?.map((cls: { id: string; name: string }) => (
                         <SelectItem key={cls.id} value={cls.id}>
                           {cls.name}
                         </SelectItem>
