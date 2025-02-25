@@ -13,6 +13,7 @@ import CampusPrograms from "./CampusPrograms";
 import CampusClasses from "./CampusClasses";
 import CampusTeachers from "./CampusTeachers";
 import CampusStudents from "./CampusStudents";
+import CampusCoordinators from "./CampusCoordinators";
 import { useRouter } from "next/navigation";
 
 interface CampusViewProps {
@@ -59,6 +60,7 @@ const CampusView: FC<CampusViewProps> = ({ campusId }) => {
           <TabsTrigger value="classes">Classes</TabsTrigger>
           <TabsTrigger value="teachers">Teachers</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="coordinators">Coordinators</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="space-y-4">
@@ -192,6 +194,16 @@ const CampusView: FC<CampusViewProps> = ({ campusId }) => {
             </Button>
           </div>
           <CampusStudents campusId={campusId} />
+        </TabsContent>
+
+        <TabsContent value="coordinators">
+          <div className="mb-4 flex justify-end">
+            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/coordinators/new`)}>
+              <LuPlus className="mr-2 h-4 w-4" />
+              Add Coordinator
+            </Button>
+          </div>
+          <CampusCoordinators campusId={campusId} />
         </TabsContent>
       </Tabs>
 
