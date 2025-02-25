@@ -378,40 +378,46 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.class.findMany({
-        where: {
-          classGroup: {
-            campusId: input.campusId
-          },
-          status: input.status,
-          ...(input.search ? {
-            OR: [
-              { name: { contains: input.search, mode: "insensitive" } }
-            ]
-          } : {})
+      const where = {
+        classGroup: {
+          program: {
+            campuses: {
+              some: {
+                id: input.campusId
+              }
+            }
+          }
         },
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
+          name: { contains: input.search, mode: "insensitive" },
+        }),
+      };
+
+      return ctx.prisma.class.findMany({
+        where,
         include: {
           classGroup: {
             include: {
               program: true
             }
           },
-          teachers: {
+          classSubjects: {
             include: {
-              teacher: {
+              subject: true,
+              teachers: {
                 include: {
-                  user: true
+                  teacher: {
+                    include: {
+                      user: true
+                    }
+                  }
                 }
-              },
-              subject: true
-            }
-          },
-          _count: {
-            select: {
-              students: true
+              }
             }
           }
-        }
+        },
+        orderBy: { name: "asc" }
       });
     }),
 
@@ -457,6 +463,134 @@ export const campusRouter = createTRPCRouter({
           },
         },
         orderBy: { name: "asc" },
+      });
+    }),
+
+  getBuildings: protectedProcedure
+    .input(z.object({
+      campusId: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.building.findMany({
+        where: {
+          AND: [
+            { campusId: input.campusId },
+            { status: { equals: "ACTIVE" } }
+          ]
+        },
+        orderBy: {
+          code: "asc"
+        }
+      });
+    }),
+
+  getRooms: protectedProcedure
+    .input(z.object({
+      campusId: z.string(),
+      buildingId: z.string().optional()
+    }))
+    .query(async ({ ctx, input }) => {
+      const building = await ctx.prisma.building.findFirst({
+        where: {
+          id: input.buildingId,
+          campusId: input.campusId,
+          status: { equals: "ACTIVE" }
+        },
+        include: {
+          wings: true
+        }
+      });
+
+      if (!building) return [];
+
+      return ctx.prisma.room.findMany({
+        where: {
+          wingId: {
+            in: building.wings.map(w => w.id)
+          }
+        },
+        orderBy: {
+          number: "asc"
+        }
+      });
+    }),
+
+  createClass: protectedProcedure
+    .input(z.object({
+      campusId: z.string(),
+      classGroupId: z.string(),
+      name: z.string(),
+      buildingId: z.string().optional(),
+      roomId: z.string().optional(),
+      capacity: z.number()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // First get the class group to inherit settings
+      const classGroup = await ctx.prisma.classGroup.findUnique({
+        where: { id: input.classGroupId },
+        include: {
+          program: true
+        }
+      });
+
+      if (!classGroup) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Class group not found',
+        });
+      }
+
+      // Get program subjects
+      const programSubjects = await ctx.prisma.programSubject.findMany({
+        where: {
+          programId: classGroup.program.id,
+          status: "ACTIVE"
+        },
+        include: {
+          subject: true
+        }
+      });
+
+      // Create base class data
+      const classData = {
+        name: input.name,
+        campusId: input.campusId,
+        classGroupId: input.classGroupId,
+        buildingId: input.buildingId,
+        roomId: input.roomId,
+        capacity: input.capacity,
+        status: "ACTIVE",
+        settings: classGroup.settings // Inherit settings from class group
+      };
+
+      // Create the class with inherited settings
+      const newClass = await ctx.prisma.class.create({
+        data: classData
+      });
+
+      // Create subject associations
+      await ctx.prisma.classSubject.createMany({
+        data: programSubjects.map(ps => ({
+          classId: newClass.id,
+          subjectId: ps.subject.id,
+          status: "ACTIVE"
+        }))
+      });
+
+      return ctx.prisma.class.findUnique({
+        where: { id: newClass.id },
+        include: {
+          classGroup: {
+            include: {
+              program: true
+            }
+          },
+          classSubjects: {
+            include: {
+              subject: true
+            }
+          }
+        }
       });
     }),
 
@@ -634,6 +768,64 @@ export const campusRouter = createTRPCRouter({
         include: {
           programs: true
         }
+      });
+    }),
+
+  getInheritedClassGroups: protectedProcedure
+    .input(z.object({
+      campusId: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+      search: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // First get the campus's programs
+      const campus = await ctx.prisma.campus.findUnique({
+        where: { id: input.campusId },
+        include: {
+          programs: true
+        }
+      });
+
+      if (!campus) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Campus not found',
+        });
+      }
+
+      const programIds = campus.programs.map(p => p.id);
+
+      // Then get class groups from those programs
+      return ctx.prisma.classGroup.findMany({
+        where: {
+          programId: { in: programIds },
+          ...(input.status && { status: input.status }),
+          ...(input.search && {
+            name: { contains: input.search, mode: "insensitive" },
+          }),
+        },
+        include: {
+          program: true,
+          classes: {
+            include: {
+              classSubjects: {
+                include: {
+                  subject: true,
+                  teachers: {
+                    include: {
+                      teacher: {
+                        include: {
+                          user: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        orderBy: { name: "asc" },
       });
     }),
 });

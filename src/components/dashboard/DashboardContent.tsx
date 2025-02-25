@@ -40,6 +40,13 @@ export const DashboardContent = ({ role }: { role: string }) => {
     .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
+  const { data: programs } = api.campus.getInheritedPrograms.useQuery(
+    { campusId: campus.id },
+    { enabled: !!campus }
+  );
+
+  const programNames = programs?.map((program) => program.title) ?? [];
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">
