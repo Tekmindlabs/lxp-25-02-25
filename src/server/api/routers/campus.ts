@@ -355,11 +355,11 @@ export const campusRouter = createTRPCRouter({
           classes: {
             include: {
               class: true,
-              teacherSubjects: {
-                include: {
-                  subject: true,
-                },
-              },
+            },
+          },
+          subjects: {
+            include: {
+              subject: true,
             },
           },
         },
@@ -443,14 +443,14 @@ export const campusRouter = createTRPCRouter({
             include: {
               teachers: {
                 include: {
-                  teacherProfile: {
+                  teacher: {
                     include: {
                       user: true,
-                    },
-                  },
-                  teacherSubjects: {
-                    include: {
-                      subject: true,
+                      subjects: {
+                        include: {
+                          subject: true,
+                        },
+                      },
                     },
                   },
                 },
