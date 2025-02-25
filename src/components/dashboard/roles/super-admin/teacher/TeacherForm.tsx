@@ -52,7 +52,7 @@ interface ApiError {
 const teacherFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: z.string().optional(),
   teacherType: z.nativeEnum(TeacherType),
   specialization: z.string().optional(),
   subjectIds: z.array(z.string()).optional(),
@@ -63,21 +63,23 @@ type TeacherFormValues = z.infer<typeof teacherFormSchema>;
 
 interface TeacherFormProps {
   initialData?: Partial<TeacherFormValues> & { campusId?: string };
+  campusId?: string;
   teacherId?: string;
   classes?: Class[];
   isCreate?: boolean;
   onClose?: () => void;
 }
 
-export default function TeacherForm({
+export const TeacherForm = ({
   initialData = {},
   teacherId,
   classes = [],
   isCreate,
   onClose,
-}: TeacherFormProps) {
-  const router = useRouter();
+}: TeacherFormProps) => {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const utils = api.useContext();
 
   // Get subjects for the specific campus
   const { data: campusSubjects = [], isLoading: isLoadingSubjects } = api.subject.getAll.useQuery(
@@ -85,54 +87,49 @@ export default function TeacherForm({
     { enabled: !!initialData.campusId }
   );
 
-  // Get teacher data if editing
-  const { data: teacherData, isLoading: isLoadingTeacher } = api.teacher.getById.useQuery(
-    teacherId!,
-    { enabled: !!teacherId }
-  );
-
-  // Create teacher mutation
-  const createTeacher = api.teacher.createTeacher.useMutation({
-    onSuccess: () => {
-      toast.success("Teacher created successfully");
-      setLoading(false);
-      router.push(`/dashboard/super-admin/campus/${initialData.campusId}/teachers`);
-      router.refresh();
-    },
-    onError: (error: ApiError) => {
-      toast.error(error.message);
-      setLoading(false);
-    },
-  });
-
-  // Update teacher mutation
-  const updateTeacher = api.teacher.updateTeacher.useMutation({
-    onSuccess: () => {
-      toast.success("Teacher updated successfully");
-      setLoading(false);
-      router.push(`/dashboard/super-admin/campus/${initialData.campusId}/teachers`);
-      router.refresh();
-    },
-    onError: (error: ApiError) => {
-      toast.error(error.message);
-      setLoading(false);
-    },
-  });
-
   const form = useForm<TeacherFormValues>({
     resolver: zodResolver(teacherFormSchema),
     defaultValues: {
-      name: initialData.name ?? "",
-      email: initialData.email ?? "",
-      phoneNumber: initialData.phoneNumber ?? "",
-      teacherType: initialData.teacherType ?? TeacherType.CLASS,
-      specialization: initialData.specialization ?? "",
-      subjectIds: initialData.subjectIds ?? [],
-      classIds: initialData.classIds ?? [],
+      name: initialData.name || "",
+      email: initialData.email || "",
+      phoneNumber: initialData.phoneNumber || "",
+      teacherType: initialData.teacherType || TeacherType.CLASS,
+      specialization: initialData.specialization || "",
+      subjectIds: initialData.subjectIds || [],
+      classIds: initialData.classIds || [],
     },
   });
 
-  // Set form default values when teacher data is loaded
+  // Query to get teacher data if editing
+  const { data: teacherData, isLoading: isLoadingTeacher } = api.teacher.getTeacher.useQuery(
+    { id: teacherId || "" },
+    { enabled: !!teacherId }
+  );
+
+  // Mutations for create/update
+  const createTeacher = api.teacher.createTeacher.useMutation({
+    onSuccess: () => {
+      toast.success("Teacher created successfully");
+      utils.teacher.getAll.invalidate();
+      if (onClose) onClose();
+    },
+    onError: (error: ApiError) => {
+      toast.error(error.message || "Failed to create teacher");
+    },
+  });
+
+  const updateTeacher = api.teacher.updateTeacher.useMutation({
+    onSuccess: () => {
+      toast.success("Teacher updated successfully");
+      utils.teacher.getAll.invalidate();
+      if (onClose) onClose();
+    },
+    onError: (error: ApiError) => {
+      toast.error(error.message || "Failed to update teacher");
+    },
+  });
+
+  // Update form when teacher data is loaded
   useEffect(() => {
     if (teacherData) {
       form.reset({
@@ -158,8 +155,10 @@ export default function TeacherForm({
       } else {
         await createTeacher.mutateAsync(data);
       }
+      router.refresh();
     } catch (error) {
       console.error(teacherId ? "Failed to update teacher:" : "Failed to create teacher:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -316,4 +315,4 @@ export default function TeacherForm({
       </form>
     </Form>
   );
-}
+};

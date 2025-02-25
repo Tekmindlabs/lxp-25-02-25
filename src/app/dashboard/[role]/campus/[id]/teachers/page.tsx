@@ -14,6 +14,19 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
 import { Badge } from "@/components/ui/badge";
+import { TeacherType } from "@prisma/client";
+
+interface TeacherWithProfile {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  teacherProfile?: {
+    teacherType: TeacherType;
+    subjects?: Array<{ subject: { name: string } }>;
+    classes?: Array<{ class: { name: string } }>;
+  };
+}
 
 export default function TeachersPage({
   params,
@@ -25,7 +38,7 @@ export default function TeachersPage({
   // Fetch teachers for this campus
   const { data: teachers = [], isLoading } = api.campus.getTeachers.useQuery({
     campusId
-  });
+  }) as { data: TeacherWithProfile[], isLoading: boolean };
 
   return (
     <div className="space-y-6">
@@ -72,14 +85,14 @@ export default function TeachersPage({
                   <TableCell>{teacher.phoneNumber || '-'}</TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {teacher.teacherProfile?.teacherType === 'CLASS' ? 'Class Teacher' : 'Subject Teacher'}
+                      {teacher.teacherProfile?.teacherType === TeacherType.CLASS ? 'Class Teacher' : 'Subject Teacher'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {teacher.teacherProfile?.subjects?.map(s => s.subject.name).join(', ') || '-'}
+                    {teacher.teacherProfile?.subjects?.map((s) => s.subject.name).join(', ') || '-'}
                   </TableCell>
                   <TableCell>
-                    {teacher.teacherProfile?.classes?.map(c => c.class.name).join(', ') || '-'}
+                    {teacher.teacherProfile?.classes?.map((c) => c.class.name).join(', ') || '-'}
                   </TableCell>
                   <TableCell>
                     <Link href={`/dashboard/${params.role}/campus/${campusId}/teachers/${teacher.id}/edit`}>
