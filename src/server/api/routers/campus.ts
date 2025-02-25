@@ -294,7 +294,7 @@ export const campusRouter = createTRPCRouter({
     .input(z.object({ 
       campusId: z.string(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE", "GRADUATED", "WITHDRAWN"]).optional()
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
       const where = {
@@ -304,18 +304,14 @@ export const campusRouter = createTRPCRouter({
           OR: [
             { 
               user: {
-                firstName: { contains: input.search, mode: "insensitive" as const }
+                OR: [
+                  { firstName: { contains: input.search, mode: "insensitive" as const } },
+                  { lastName: { contains: input.search, mode: "insensitive" as const } }
+                ]
               }
             },
-            { 
-              user: {
-                lastName: { contains: input.search, mode: "insensitive" as const }
-              }
-            },
-            { 
-              studentId: { contains: input.search, mode: "insensitive" as const }
-            }
-          ],
+            { studentId: { contains: input.search, mode: "insensitive" as const } }
+          ]
         }),
       };
 
@@ -325,9 +321,9 @@ export const campusRouter = createTRPCRouter({
           user: true,
           class: true
         },
-        orderBy: { 
+        orderBy: {
           user: {
-            firstName: "asc"
+            lastName: "asc"
           }
         },
       });
@@ -344,12 +340,18 @@ export const campusRouter = createTRPCRouter({
         campusId: input.campusId,
         ...(input.status && { status: input.status }),
         ...(input.search && {
-          user: {
-            OR: [
-              { firstName: { contains: input.search, mode: "insensitive" as const } },
-              { lastName: { contains: input.search, mode: "insensitive" as const } }
-            ]
-          }
+          OR: [
+            { 
+              user: {
+                firstName: { contains: input.search, mode: "insensitive" as const }
+              }
+            },
+            {
+              user: {
+                lastName: { contains: input.search, mode: "insensitive" as const }
+              }
+            }
+          ]
         }),
       };
 
@@ -357,15 +359,11 @@ export const campusRouter = createTRPCRouter({
         where,
         include: {
           user: true,
-          teacherAssignments: {
-            include: {
-              class: true
-            }
-          }
+          classes: true
         },
         orderBy: {
           user: {
-            firstName: "asc"
+            lastName: "asc"
           }
         },
       });
