@@ -423,11 +423,9 @@ export const campusRouter = createTRPCRouter({
     }))
     .query(async ({ ctx, input }) => {
       const where: Prisma.ClassGroupWhereInput = {
-        classes: {
+        campusClassGroups: {
           some: {
-            campus: {
-              id: input.campusId,
-            },
+            campusId: input.campusId,
           },
         },
         ...(input.status && { status: input.status }),
@@ -700,11 +698,9 @@ export const campusViewRouter = createTRPCRouter({
 
       return ctx.prisma.classGroup.findMany({
         where: {
-          classes: {
+          campusClassGroups: {
             some: {
-              campus: {
-                id: input.campusId,
-              },
+              campusId: input.campusId,
             },
           },
         },
