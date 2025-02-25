@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams as useNextParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useRouter } from "next/navigation";
@@ -26,8 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 
 const createTeacherSchema = z.object({
@@ -42,8 +40,8 @@ const createTeacherSchema = z.object({
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
 const CreateTeacherPage: FC = () => {
-  const params = useNextParams();
-  const campusId = params?.id as string;
+  const pathname = usePathname();
+  const campusId = pathname.split("/").slice(-3)[0] as string;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -81,8 +79,11 @@ const CreateTeacherPage: FC = () => {
 
   const onSubmit = (data: CreateTeacherForm) => {
     createTeacherMutation.mutate({
-      ...data,
-      campusId,
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      teacherType: data.isClassTeacher ? "CLASS" : "SUBJECT",
+      subjectIds: data.subjectIds,
+      classIds: [data.classId],
     });
   };
 
@@ -199,19 +200,23 @@ const CreateTeacherPage: FC = () => {
                   </Select>
                   <div className="mt-2">
                     {field.value?.map((subjectId) => (
-                      <Badge
+                      <div
                         key={subjectId}
-                        variant="secondary"
-                        className="mr-2"
-                        onClick={() => {
-                          field.onChange(
-                            field.value?.filter((id) => id !== subjectId)
-                          );
-                        }}
+                        className="mr-2 mb-2 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground"
                       >
                         {subjects?.find((s) => s.id === subjectId)?.name}
-                        <X className="ml-1 h-3 w-3" />
-                      </Badge>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            field.onChange(
+                              field.value?.filter((id) => id !== subjectId)
+                            );
+                          }}
+                          className="ml-1 inline-flex h-3 w-3 items-center justify-center rounded-full hover:bg-secondary/80"
+                        >
+                          <X className="h-2 w-2" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                   <FormMessage />
@@ -225,9 +230,11 @@ const CreateTeacherPage: FC = () => {
               render={({ field }) => (
                 <FormItem className="flex items-center space-x-2">
                   <FormControl>
-                    <Checkbox
+                    <input
+                      type="checkbox"
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                   </FormControl>
                   <FormLabel className="!mt-0">Is Class Teacher</FormLabel>

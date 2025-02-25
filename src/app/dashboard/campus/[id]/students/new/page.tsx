@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams as useNextParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useRouter } from "next/navigation";
@@ -48,8 +48,8 @@ const createStudentSchema = z.object({
 type CreateStudentForm = z.infer<typeof createStudentSchema>;
 
 const CreateStudentPage: FC = () => {
-  const params = useNextParams();
-  const campusId = params?.id as string;
+  const pathname = usePathname();
+  const campusId = pathname.split("/").slice(-3)[0] as string;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -85,8 +85,11 @@ const CreateStudentPage: FC = () => {
 
   const onSubmit = (data: CreateStudentForm) => {
     createStudentMutation.mutate({
-      ...data,
-      campusId,
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      dateOfBirth: data.dateOfBirth,
+      classId: data.classId,
+      parentEmail: data.parentEmail,
     });
   };
 
