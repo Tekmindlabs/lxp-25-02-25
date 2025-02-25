@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -13,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Search } from "lucide-react";
+import { Users, Search, Plus } from "lucide-react";
 import { useState } from "react";
 import { Status } from "@prisma/client";
 
@@ -54,12 +56,17 @@ interface CampusClassesProps {
 const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ClassStatus | undefined>("ACTIVE");
+  const router = useRouter();
 
   const { data: classes, isLoading } = api.campus.getClasses.useQuery({
     campusId,
     search,
     status,
   });
+
+  const handleAddClass = () => {
+    router.push(`/dashboard/super-admin/campus/${campusId}/classes/new`);
+  };
 
   if (isLoading) {
     return (
@@ -106,6 +113,14 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={handleAddClass}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Class
+              </Button>
             </div>
           </CardTitle>
         </CardHeader>

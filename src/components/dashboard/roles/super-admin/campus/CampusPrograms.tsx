@@ -47,7 +47,7 @@ export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
   });
 
   const handleAddProgram = () => {
-    router.push(`/dashboard/campus/${campusId}/programs/new`);
+    router.push(`/dashboard/super-admin/campus/${campusId}/associate-program`);
   };
 
   if (isLoading) {

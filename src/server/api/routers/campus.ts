@@ -571,7 +571,7 @@ export const campusRouter = createTRPCRouter({
   addProgram: protectedProcedure
     .input(z.object({
       campusId: z.string(),
-      programId: z.string()
+      programIds: z.array(z.string())
     }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
@@ -595,32 +595,40 @@ export const campusRouter = createTRPCRouter({
         });
       }
 
-      const program = await ctx.prisma.program.findUnique({
-        where: { id: input.programId }
+      // Get all programs at once
+      const programs = await ctx.prisma.program.findMany({
+        where: {
+          id: {
+            in: input.programIds
+          }
+        }
       });
 
-      if (!program) {
+      // Check if all programs exist
+      if (programs.length !== input.programIds.length) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Program not found',
+          message: 'One or more programs not found',
         });
       }
 
-      // Check if program is already associated
-      if (campus.programs.some(p => p.id === input.programId)) {
+      // Filter out programs that are already associated
+      const existingProgramIds = campus.programs.map(p => p.id);
+      const newProgramIds = input.programIds.filter(id => !existingProgramIds.includes(id));
+
+      if (newProgramIds.length === 0) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Program is already associated with this campus',
+          message: 'All programs are already associated with this campus',
         });
       }
 
+      // Associate all new programs at once
       return ctx.prisma.campus.update({
         where: { id: input.campusId },
         data: {
           programs: {
-            connect: {
-              id: input.programId
-            }
+            connect: newProgramIds.map(id => ({ id }))
           }
         },
         include: {

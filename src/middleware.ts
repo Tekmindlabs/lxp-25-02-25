@@ -47,12 +47,18 @@ export default withAuth(
 
     // Check role-based access for dashboard routes
     if (isDashboardPage && isAuth) {
-      const urlRole = req.nextUrl.pathname.split('/')[2];
+      const pathParts = req.nextUrl.pathname.split('/');
+      const urlRole = pathParts[2];
       const userRole = token.roles?.[0]?.toLowerCase();
       
       // If no role is assigned, default to student
       if (!userRole) {
-      return NextResponse.redirect(new URL(`/dashboard/${DefaultRoles.STUDENT.toLowerCase()}`, req.url));
+        return NextResponse.redirect(new URL(`/dashboard/${DefaultRoles.STUDENT.toLowerCase()}`, req.url));
+      }
+
+      // Special handling for campus routes
+      if (pathParts[2] === 'campus') {
+        return NextResponse.redirect(new URL(`/dashboard/${userRole}/campus${req.nextUrl.pathname.substring('/dashboard/campus'.length)}`, req.url));
       }
 
       // Validate if urlRole is a valid role
@@ -61,12 +67,12 @@ export default withAuth(
       
       // If accessing a role-specific route that doesn't match user's role or is invalid
       if (urlRole && (urlRole !== userRole || !isValidRole)) {
-      return NextResponse.redirect(new URL(`/dashboard/${userRole}`, req.url));
+        return NextResponse.redirect(new URL(`/dashboard/${userRole}`, req.url));
       }
       
       // If accessing /dashboard directly, redirect to role-specific dashboard
       if (req.nextUrl.pathname === '/dashboard') {
-      return NextResponse.redirect(new URL(`/dashboard/${userRole}`, req.url));
+        return NextResponse.redirect(new URL(`/dashboard/${userRole}`, req.url));
       }
     }
 
@@ -94,29 +100,21 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-      const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
-      const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
-      const isTrpcRoute = req.nextUrl.pathname.startsWith('/api/trpc');
-      const isPublicRoute = 
-        req.nextUrl.pathname === '/' || 
-        req.nextUrl.pathname.startsWith('/_next') ||
-        isTrpcRoute ||
-        isApiAuthRoute;
+        const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+        const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
+        const isTrpcRoute = req.nextUrl.pathname.startsWith('/api/trpc');
+        const isPublicRoute = 
+          req.nextUrl.pathname === '/' || 
+          req.nextUrl.pathname.startsWith('/_next') ||
+          isTrpcRoute ||
+          isApiAuthRoute;
 
-      // Always allow TRPC routes
-      if (isTrpcRoute) return true;
-
-      if (isPublicRoute || isAuthPage) return true;
-      return !!token;
+        return !!token || isAuthPage || isPublicRoute;
       }
     }
   }
 );
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/auth/:path*',
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ]
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
