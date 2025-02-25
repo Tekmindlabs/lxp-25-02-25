@@ -853,6 +853,47 @@ export const campusRouter = createTRPCRouter({
         orderBy: { name: "asc" }
       });
     }),
+
+  getTeachers: protectedProcedure
+    .input(z.object({
+      campusId: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      const teachers = await ctx.prisma.user.findMany({
+        where: {
+          userType: 'TEACHER',
+          teacherProfile: {
+            campuses: {
+              some: {
+                campusId: input.campusId,
+                status: 'ACTIVE'
+              }
+            }
+          }
+        },
+        include: {
+          teacherProfile: {
+            include: {
+              subjects: {
+                include: {
+                  subject: true
+                }
+              },
+              classes: {
+                include: {
+                  class: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      });
+
+      return teachers;
+    }),
 });
 
 export const campusViewRouter = createTRPCRouter({

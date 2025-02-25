@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect, useState } from "react";
-import { TeacherType, Status } from "@prisma/client";
+import { Status, TeacherType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -55,7 +55,6 @@ const teacherFormSchema = z.object({
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   teacherType: z.nativeEnum(TeacherType),
   specialization: z.string().optional(),
-  campusIds: z.array(z.string()).min(1, "Select at least one campus"),
   subjectIds: z.array(z.string()).optional(),
   classIds: z.array(z.string()).optional(),
 });
@@ -63,9 +62,8 @@ const teacherFormSchema = z.object({
 type TeacherFormValues = z.infer<typeof teacherFormSchema>;
 
 interface TeacherFormProps {
-  initialData?: Partial<TeacherFormValues>;
+  initialData?: Partial<TeacherFormValues> & { campusId?: string };
   teacherId?: string;
-  subjects?: Subject[];
   classes?: Class[];
   isCreate?: boolean;
   onClose?: () => void;
@@ -74,7 +72,6 @@ interface TeacherFormProps {
 export default function TeacherForm({
   initialData = {},
   teacherId,
-  subjects = [],
   classes = [],
   isCreate,
   onClose,
@@ -82,12 +79,15 @@ export default function TeacherForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Get campuses data
-  const { data: campuses = [], isLoading: isLoadingCampuses } = api.campus.getAll.useQuery();
+  // Get subjects for the specific campus
+  const { data: campusSubjects = [], isLoading: isLoadingSubjects } = api.subject.getAll.useQuery(
+    undefined,
+    { enabled: !!initialData.campusId }
+  );
 
   // Get teacher data if editing
-  const { data: teacherData, isLoading: isLoadingTeacher } = api.teacher.getTeacher.useQuery(
-    { id: teacherId! },
+  const { data: teacherData, isLoading: isLoadingTeacher } = api.teacher.getById.useQuery(
+    teacherId!,
     { enabled: !!teacherId }
   );
 
@@ -96,7 +96,7 @@ export default function TeacherForm({
     onSuccess: () => {
       toast.success("Teacher created successfully");
       setLoading(false);
-      router.push("/dashboard/teachers");
+      router.push(`/dashboard/super-admin/campus/${initialData.campusId}/teachers`);
       router.refresh();
     },
     onError: (error: ApiError) => {
@@ -110,7 +110,7 @@ export default function TeacherForm({
     onSuccess: () => {
       toast.success("Teacher updated successfully");
       setLoading(false);
-      router.push("/dashboard/teachers");
+      router.push(`/dashboard/super-admin/campus/${initialData.campusId}/teachers`);
       router.refresh();
     },
     onError: (error: ApiError) => {
@@ -127,7 +127,6 @@ export default function TeacherForm({
       phoneNumber: initialData.phoneNumber ?? "",
       teacherType: initialData.teacherType ?? TeacherType.CLASS,
       specialization: initialData.specialization ?? "",
-      campusIds: initialData.campusIds ?? [],
       subjectIds: initialData.subjectIds ?? [],
       classIds: initialData.classIds ?? [],
     },
@@ -137,14 +136,13 @@ export default function TeacherForm({
   useEffect(() => {
     if (teacherData) {
       form.reset({
-        name: teacherData.name,
-        email: teacherData.email,
-        phoneNumber: teacherData.phoneNumber,
-        teacherType: teacherData.teacherType,
-        specialization: teacherData.specialization ?? "",
-        campusIds: teacherData.campuses?.map(c => c.id) ?? [],
-        subjectIds: teacherData.subjects?.map(s => s.id) ?? [],
-        classIds: teacherData.classes?.map(c => c.id) ?? [],
+        name: teacherData.name || "",
+        email: teacherData.email || "",
+        phoneNumber: teacherData.phoneNumber || "",
+        teacherType: teacherData.teacherProfile?.teacherType || TeacherType.CLASS,
+        specialization: teacherData.teacherProfile?.specialization || "",
+        subjectIds: teacherData.teacherProfile?.subjects?.map((s: { id: string }) => s.id) ?? [],
+        classIds: teacherData.teacherProfile?.classes?.map((c: { id: string }) => c.id) ?? [],
       });
     }
   }, [teacherData, form]);
@@ -155,26 +153,10 @@ export default function TeacherForm({
       if (teacherId) {
         await updateTeacher.mutateAsync({
           id: teacherId,
-          name: data.name,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          teacherType: data.teacherType,
-          specialization: data.specialization,
-          subjectIds: data.subjectIds,
-          classIds: data.classIds,
-          campusIds: data.campusIds,
+          ...data,
         });
       } else {
-        await createTeacher.mutateAsync({
-          name: data.name,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          teacherType: data.teacherType,
-          specialization: data.specialization,
-          subjectIds: data.subjectIds,
-          classIds: data.classIds,
-          campusIds: data.campusIds,
-        });
+        await createTeacher.mutateAsync(data);
       }
     } catch (error) {
       console.error(teacherId ? "Failed to update teacher:" : "Failed to create teacher:", error);
@@ -251,8 +233,8 @@ export default function TeacherForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="CLASS">Class Teacher</SelectItem>
-                    <SelectItem value="SUBJECT">Subject Teacher</SelectItem>
+                    <SelectItem value={TeacherType.CLASS}>Class Teacher</SelectItem>
+                    <SelectItem value={TeacherType.SUBJECT}>Subject Teacher</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -274,31 +256,6 @@ export default function TeacherForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="campusIds"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assigned Campuses</FormLabel>
-                <FormControl>
-                  <MultiSelect<string>
-                    value={field.value}
-                    options={
-                      campuses?.map((campus: Campus) => ({
-                        label: campus.name,
-                        value: campus.id,
-                      })) ?? []
-                    }
-                    onChange={field.onChange}
-                    placeholder="Select campuses"
-                    disabled={isLoadingCampuses}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {form.watch("teacherType") === TeacherType.CLASS && (
             <FormField
               control={form.control}
@@ -310,13 +267,14 @@ export default function TeacherForm({
                     <MultiSelect<string>
                       value={field.value ?? []}
                       options={
-                        subjects?.map((subject: Subject) => ({
+                        campusSubjects?.map((subject: Subject) => ({
                           label: subject.name,
                           value: subject.id,
                         })) ?? []
                       }
                       onChange={field.onChange}
                       placeholder="Select subjects"
+                      disabled={isLoadingSubjects}
                     />
                   </FormControl>
                   <FormMessage />
