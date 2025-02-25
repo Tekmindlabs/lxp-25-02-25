@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { roomSchema, roomIdSchema, updateRoomSchema } from "@/types/validation/room";
+import { roomSchema, roomIdSchema, updateRoomSchema } from "../validation/room";
 import { TRPCError } from "@trpc/server";
-import { RoomStatus, RoomType } from "@/types/enums";
+import { RoomStatus, RoomType } from "@prisma/client";
 import { RoomSchedulingService } from "../../services/RoomSchedulingService";
 import { RoomResourceService } from "../../services/RoomResourceService";
 import { RoomReportingService } from "../../services/RoomReportingService";
@@ -20,9 +20,47 @@ export const roomRouter = createTRPCRouter({
 		.input(roomSchema)
 		.mutation(async ({ ctx, input }) => {
 			const campusService = new CampusService(ctx.prisma);
+			
+			// Check if room number already exists in the wing
+			const existingRoom = await ctx.prisma.room.findFirst({
+				where: {
+					wingId: input.wingId,
+					number: input.number,
+				},
+			});
+
+			if (existingRoom) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "A room with this number already exists in this wing",
+				});
+			}
+
 			const room = await campusService.createRoom(input);
 			await roomCache.set(room.id, room);
 			return room;
+		}),
+
+	getByWingId: protectedProcedure
+		.input(z.object({ wingId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			return ctx.prisma.room.findMany({
+				where: { wingId: input.wingId },
+				include: {
+					wing: {
+						include: {
+							floor: {
+								include: {
+									building: true
+								}
+							}
+						}
+					}
+				},
+				orderBy: {
+					number: 'asc'
+				}
+			});
 		}),
 
 	getAll: protectedProcedure

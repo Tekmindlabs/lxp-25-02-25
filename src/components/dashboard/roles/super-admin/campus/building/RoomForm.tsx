@@ -4,6 +4,7 @@ import { z } from "zod";
 import { api } from "@/utils/api";
 import { useToast } from "../../../../../../hooks/use-toast";
 import type { Room, RoomType, RoomStatus } from "@prisma/client";
+import * as React from "react";
 import {
   Dialog,
   DialogContent,
@@ -63,13 +64,34 @@ export const RoomForm = ({
     },
   });
 
+  // Reset form when room changes
+  React.useEffect(() => {
+    if (room) {
+      form.reset({
+        number: room.number,
+        type: room.type,
+        capacity: room.capacity,
+        status: room.status,
+      });
+    }
+  }, [room, form]);
+
   const createMutation = api.room.create.useMutation({
     onSuccess: () => {
       toast({
         title: "Room created",
         description: "The room has been created successfully",
       });
+      form.reset();
       onSuccess();
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create room",
+        variant: "destructive",
+      });
     },
   });
 
@@ -80,6 +102,14 @@ export const RoomForm = ({
         description: "The room has been updated successfully",
       });
       onSuccess();
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update room",
+        variant: "destructive",
+      });
     },
   });
 

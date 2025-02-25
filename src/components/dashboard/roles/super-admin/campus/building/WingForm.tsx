@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { wingSchema } from "@/server/api/validation/wing";
 import type { z } from "zod";
+import { useEffect } from "react";
 
 interface WingFormProps {
 	isOpen: boolean;
@@ -42,11 +43,21 @@ export const WingForm = ({
 	const { toast } = useToast();
 	const form = useForm<FormValues>({
 		resolver: zodResolver(wingSchema),
-		defaultValues: wing || {
-			name: "",
+		defaultValues: {
+			name: wing?.name || "",
 			floorId,
 		},
 	});
+
+	// Reset form when wing changes
+	useEffect(() => {
+		if (wing) {
+			form.reset({
+				name: wing.name,
+				floorId: wing.floorId,
+			});
+		}
+	}, [wing, form]);
 
 	const createMutation = api.wing.create.useMutation({
 		onSuccess: () => {

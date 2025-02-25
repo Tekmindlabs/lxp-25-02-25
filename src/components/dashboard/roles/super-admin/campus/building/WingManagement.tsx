@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { WingForm } from "@/components/dashboard/roles/super-admin/campus/building/WingForm";
@@ -24,9 +24,8 @@ interface WingManagementProps {
 export const WingManagement = ({ floorId }: WingManagementProps) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedWing, setSelectedWing] = useState<Wing | null>(null);
+  const { data: wings, refetch } = api.wing.getAll.useQuery({ floorId });
   const { toast } = useToast();
-
-  const { data: wings, refetch, isLoading } = api.wing.getAll.useQuery({ floorId });
 
   const deleteMutation = api.wing.delete.useMutation({
     onSuccess: () => {
@@ -34,14 +33,21 @@ export const WingManagement = ({ floorId }: WingManagementProps) => {
         title: "Wing deleted",
         description: "The wing has been deleted successfully",
       });
-      refetch();
+      void refetch();
     },
   });
 
-  const handleEdit = (wing: Wing) => {
+  const handleEdit = useCallback((wing: Wing) => {
     setSelectedWing(wing);
     setIsFormOpen(true);
-  };
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsFormOpen(false);
+    setTimeout(() => {
+      setSelectedWing(null);
+    }, 0);
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {
@@ -55,7 +61,7 @@ export const WingManagement = ({ floorId }: WingManagementProps) => {
     }
   };
 
-  if (isLoading) {
+  if (!wings) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-12 w-full" />
@@ -135,15 +141,11 @@ export const WingManagement = ({ floorId }: WingManagementProps) => {
 
       <WingForm
         isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setSelectedWing(null);
-        }}
+        onClose={handleClose}
         wing={selectedWing}
         floorId={floorId}
         onSuccess={() => {
-          setIsFormOpen(false);
-          setSelectedWing(null);
+          handleClose();
           refetch();
         }}
       />

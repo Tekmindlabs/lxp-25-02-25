@@ -28,6 +28,21 @@ export const wingRouter = createTRPCRouter({
 			});
 		}),
 
+	getByFloorId: protectedProcedure
+		.input(z.object({ floorId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			return ctx.prisma.wing.findMany({
+				where: { floorId: input.floorId },
+				include: {
+					floor: true,
+					rooms: true
+				},
+				orderBy: {
+					name: 'asc'
+				}
+			});
+		}),
+
 	getById: protectedProcedure
 		.input(wingIdSchema)
 		.query(async ({ ctx, input }) => {

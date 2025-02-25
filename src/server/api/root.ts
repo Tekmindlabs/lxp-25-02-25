@@ -18,6 +18,7 @@ import { campusClassGroupRouter } from "./routers/campusClassGroup";
 import { buildingRouter } from "./routers/building";
 import { floorRouter } from "./routers/floor";
 import { wingRouter } from "./routers/wing";
+import { roomRouter } from "./routers/room";
 
 export const appRouter = createTRPCRouter({
   academicCalendar: academicCalendarRouter,
@@ -39,6 +40,7 @@ export const appRouter = createTRPCRouter({
   building: buildingRouter,
   floor: floorRouter,
   wing: wingRouter,
+  room: roomRouter,
 });
 
 export type AppRouter = typeof appRouter;
