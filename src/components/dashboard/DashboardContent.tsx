@@ -7,15 +7,19 @@ import { DashboardLayout } from "./layouts/DashboardLayout";
 import { RoleLayouts } from "./layouts/RoleLayouts";
 import { DashboardFeatures } from "./features/DashboardFeatures";
 
-export const DashboardContent = ({ role }: { role: keyof typeof DefaultRoles }) => {
+export const DashboardContent = ({ role }: { role: string }) => {
   const { data: session } = useSession();
-  // Convert the role to the format used in DefaultRoles
-  const normalizedRole = role.toLowerCase() as keyof typeof DefaultRoles;
-  const layout = RoleLayouts[normalizedRole];
-  const features = DashboardFeatures[normalizedRole];
+  
+  // Convert the role to kebab-case for feature lookup
+  const normalizedFeatureRole = role.toLowerCase().replace(/_/g, '-');
+  // Convert the role to UPPER_SNAKE_CASE for layout lookup
+  const normalizedLayoutRole = role.toUpperCase().replace(/-/g, '_') as keyof typeof DefaultRoles;
+
+  const layout = RoleLayouts[normalizedLayoutRole];
+  const features = DashboardFeatures[normalizedFeatureRole as keyof typeof DashboardFeatures];
 
   if (!layout || !features) {
-    console.error(`No layout or features configuration found for role: ${normalizedRole}`);
+    console.error(`No layout or features configuration found for role: ${role}`);
     console.log('Available layouts:', Object.keys(RoleLayouts));
     console.log('Available features:', Object.keys(DashboardFeatures));
     return <div>Dashboard configuration not found for this role.</div>;
@@ -23,14 +27,16 @@ export const DashboardContent = ({ role }: { role: keyof typeof DefaultRoles }) 
 
   // Filter components based on features
   const allowedComponents = layout.components.filter(component => {
-    const componentFeature = (component.component.displayName?.toLowerCase() ?? '') as DashboardFeature;
-    return features.includes(componentFeature);
+    if (typeof component.component === 'string') {
+      return features.includes(component.component.toLowerCase() as DashboardFeature);
+    }
+    return features.includes((component.component.name?.toLowerCase() ?? '') as DashboardFeature);
   });
 
   // Convert role string to title case with spaces
   const roleTitle = role
     .toLowerCase()
-    .split('_')
+    .split(/[-_]/)
     .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
