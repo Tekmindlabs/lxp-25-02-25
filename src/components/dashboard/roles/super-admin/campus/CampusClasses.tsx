@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LuUsers, LuSearch } from "react-icons/lu";
+import { Users, Search } from "lucide-react";
 import { useState } from "react";
 
 interface CampusClassesProps {
@@ -48,15 +48,15 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <LuUsers className="h-5 w-5" />
+              <Users className="h-5 w-5" />
               Campus Classes
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <LuSearch className="h-4 w-4 text-muted-foreground" />
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search classes..."
-                  className="h-8 w-[150px] lg:w-[250px]"
+                  className="h-8 pl-8 w-[150px] lg:w-[250px]"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

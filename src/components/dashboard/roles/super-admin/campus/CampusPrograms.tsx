@@ -5,7 +5,7 @@ import { api } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LuGraduationCap } from "react-icons/lu";
+import { GraduationCap } from "lucide-react";
 
 interface CampusProgramsProps {
   campusId: string;
@@ -44,7 +44,7 @@ const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LuGraduationCap className="h-5 w-5" />
+            <GraduationCap className="h-5 w-5" />
             Associated Programs
           </CardTitle>
         </CardHeader>
