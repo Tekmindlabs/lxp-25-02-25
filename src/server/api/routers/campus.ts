@@ -207,7 +207,7 @@ export const campusRouter = createTRPCRouter({
 
   getMetrics: protectedProcedure
     .input(z.object({ campusId: z.string() }))
-    .query(async ({ ctx, input }: { ctx: Context; input: { campusId: string } }) => {
+    .query(async ({ ctx, input }) => {
       const [studentCount, teacherCount, programCount, classGroupCount] = await Promise.all([
         ctx.prisma.studentProfile.count({
           where: {
@@ -257,6 +257,142 @@ export const campusRouter = createTRPCRouter({
         programCount,
         classGroupCount,
       };
+    }),
+
+  getPrograms: protectedProcedure
+    .input(z.object({ campusId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const programs = await ctx.prisma.program.findMany({
+        where: {
+          campusPrograms: {
+            some: {
+              campusId: input.campusId
+            }
+          }
+        },
+        include: {
+          coordinator: true
+        }
+      });
+
+      return programs;
+    }),
+
+  getStudents: protectedProcedure
+    .input(z.object({ 
+      campusId: z.string(),
+      search: z.string().optional(),
+      status: z.enum(["ACTIVE", "INACTIVE", "GRADUATED", "WITHDRAWN"]).optional()
+    }))
+    .query(async ({ ctx, input }) => {
+      const students = await ctx.prisma.studentProfile.findMany({
+        where: {
+          campusId: input.campusId,
+          status: input.status,
+          OR: input.search ? [
+            { user: { firstName: { contains: input.search, mode: 'insensitive' } } },
+            { user: { lastName: { contains: input.search, mode: 'insensitive' } } },
+            { studentId: { contains: input.search, mode: 'insensitive' } }
+          ] : undefined
+        },
+        include: {
+          user: true,
+          campusClass: {
+            include: {
+              classGroup: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      return students;
+    }),
+
+  getTeachers: protectedProcedure
+    .input(z.object({ 
+      campusId: z.string(),
+      search: z.string().optional(),
+      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
+    }))
+    .query(async ({ ctx, input }) => {
+      const teachers = await ctx.prisma.teacherProfile.findMany({
+        where: {
+          campusId: input.campusId,
+          status: input.status,
+          OR: input.search ? [
+            { user: { firstName: { contains: input.search, mode: 'insensitive' } } },
+            { user: { lastName: { contains: input.search, mode: 'insensitive' } } },
+            { teacherId: { contains: input.search, mode: 'insensitive' } }
+          ] : undefined
+        },
+        include: {
+          user: true,
+          teacherAllocations: {
+            include: {
+              campusClass: {
+                include: {
+                  classGroup: true
+                }
+              },
+              subject: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      return teachers;
+    }),
+
+  getClasses: protectedProcedure
+    .input(z.object({ 
+      campusId: z.string(),
+      search: z.string().optional(),
+      status: z.enum(["ACTIVE", "INACTIVE", "COMPLETED"]).optional()
+    }))
+    .query(async ({ ctx, input }) => {
+      const classes = await ctx.prisma.campusClass.findMany({
+        where: {
+          campusId: input.campusId,
+          status: input.status,
+          OR: input.search ? [
+            { name: { contains: input.search, mode: 'insensitive' } },
+            { code: { contains: input.search, mode: 'insensitive' } }
+          ] : undefined
+        },
+        include: {
+          classGroup: {
+            include: {
+              program: true
+            }
+          },
+          teacherAllocations: {
+            include: {
+              teacher: {
+                include: {
+                  user: true
+                }
+              },
+              subject: true
+            }
+          },
+          _count: {
+            select: {
+              students: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      return classes;
     }),
 
   getById: protectedProcedure
@@ -440,5 +576,3 @@ export const campusViewRouter = createTRPCRouter({
       });
     }),
 });
-
-

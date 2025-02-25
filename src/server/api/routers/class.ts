@@ -96,6 +96,23 @@ export const classRouter = createTRPCRouter({
 	createClass: protectedProcedure
 		.input(classCreateSchema)
 		.mutation(async ({ ctx, input }) => {
+			// First validate the campus class group inheritance
+			const campusClassGroup = await ctx.prisma.campusClassGroup.findUnique({
+				where: {
+					campusId_classGroupId: {
+						campusId: input.campusId,
+						classGroupId: input.classGroupId
+					}
+				}
+			});
+
+			if (!campusClassGroup) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Selected class group is not available for this campus'
+				});
+			}
+
 			// First get the teacher profiles
 			const teacherProfiles = await ctx.prisma.teacherProfile.findMany({
 				where: {

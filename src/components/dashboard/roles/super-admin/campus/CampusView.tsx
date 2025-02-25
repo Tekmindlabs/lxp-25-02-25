@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { LuMapPin, LuPhone, LuMail, LuCalendar, LuBuilding } from "react-icons/lu";
 import CampusForm from "./CampusForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CampusClassGroups from "./CampusClassGroups";
+import CampusPrograms from "./CampusPrograms";
+import CampusClasses from "./CampusClasses";
+import CampusTeachers from "./CampusTeachers";
+import CampusStudents from "./CampusStudents";
 
 interface CampusViewProps {
 	campusId: string;
@@ -43,98 +49,133 @@ const CampusView: FC<CampusViewProps> = ({ campusId }) => {
 				</Button>
 			</div>
 
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<LuBuilding className="h-5 w-5" />
-							Basic Information
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						<div>
-							<p className="text-sm font-medium">Campus Code</p>
-							<p className="text-sm text-muted-foreground">{campus.code}</p>
-						</div>
-						<div>
-							<p className="text-sm font-medium">Establishment Date</p>
-							<p className="text-sm text-muted-foreground">
-								{new Date(campus.establishmentDate).toLocaleDateString()}
-							</p>
-						</div>
-					</CardContent>
-				</Card>
+			<Tabs defaultValue="info" className="space-y-4">
+				<TabsList>
+					<TabsTrigger value="info">Information</TabsTrigger>
+					<TabsTrigger value="classGroups">Class Groups</TabsTrigger>
+					<TabsTrigger value="programs">Programs</TabsTrigger>
+					<TabsTrigger value="classes">Classes</TabsTrigger>
+					<TabsTrigger value="teachers">Teachers</TabsTrigger>
+					<TabsTrigger value="students">Students</TabsTrigger>
+				</TabsList>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<LuMapPin className="h-5 w-5" />
-							Location Details
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						<div>
-							<p className="text-sm font-medium">Address</p>
-							<p className="text-sm text-muted-foreground">{campus.streetAddress}</p>
-						</div>
-						<div>
-							<p className="text-sm font-medium">City, State</p>
-							<p className="text-sm text-muted-foreground">
-								{campus.city}, {campus.state}
-							</p>
-						</div>
-						<div>
-							<p className="text-sm font-medium">Country</p>
-							<p className="text-sm text-muted-foreground">{campus.country}</p>
-						</div>
-						<div>
-							<p className="text-sm font-medium">Postal Code</p>
-							<p className="text-sm text-muted-foreground">{campus.postalCode}</p>
-						</div>
-						{campus.gpsCoordinates && (
-							<div>
-								<p className="text-sm font-medium">GPS Coordinates</p>
-								<p className="text-sm text-muted-foreground">{campus.gpsCoordinates}</p>
-							</div>
-						)}
-					</CardContent>
-				</Card>
+				<TabsContent value="info" className="space-y-4">
+					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<LuBuilding className="h-5 w-5" />
+									Basic Information
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								<div>
+									<p className="text-sm font-medium">Campus Code</p>
+									<p className="text-sm text-muted-foreground">{campus.code}</p>
+								</div>
+								<div>
+									<p className="text-sm font-medium">Establishment Date</p>
+									<p className="text-sm text-muted-foreground">
+										{new Date(campus.establishmentDate).toLocaleDateString()}
+									</p>
+								</div>
+							</CardContent>
+						</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<LuPhone className="h-5 w-5" />
-							Contact Information
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						<div>
-							<p className="text-sm font-medium">Primary Phone</p>
-							<p className="text-sm text-muted-foreground">{campus.primaryPhone}</p>
-						</div>
-						{campus.secondaryPhone && (
-							<div>
-								<p className="text-sm font-medium">Secondary Phone</p>
-								<p className="text-sm text-muted-foreground">{campus.secondaryPhone}</p>
-							</div>
-						)}
-						<div>
-							<p className="text-sm font-medium">Email Address</p>
-							<p className="text-sm text-muted-foreground">{campus.email}</p>
-						</div>
-						<div>
-							<p className="text-sm font-medium">Emergency Contact</p>
-							<p className="text-sm text-muted-foreground">{campus.emergencyContact}</p>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<LuMapPin className="h-5 w-5" />
+									Location Details
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								<div>
+									<p className="text-sm font-medium">Address</p>
+									<p className="text-sm text-muted-foreground">{campus.streetAddress}</p>
+								</div>
+								<div>
+									<p className="text-sm font-medium">City, State</p>
+									<p className="text-sm text-muted-foreground">
+										{campus.city}, {campus.state}
+									</p>
+								</div>
+								<div>
+									<p className="text-sm font-medium">Country</p>
+									<p className="text-sm text-muted-foreground">{campus.country}</p>
+								</div>
+								<div>
+									<p className="text-sm font-medium">Postal Code</p>
+									<p className="text-sm text-muted-foreground">{campus.postalCode}</p>
+								</div>
+								{campus.gpsCoordinates && (
+									<div>
+										<p className="text-sm font-medium">GPS Coordinates</p>
+										<p className="text-sm text-muted-foreground">{campus.gpsCoordinates}</p>
+									</div>
+								)}
+							</CardContent>
+						</Card>
 
-			<CampusForm 
-				isOpen={isEditFormOpen}
-				onClose={() => setIsEditFormOpen(false)}
-				campusId={campusId}
-			/>
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<LuPhone className="h-5 w-5" />
+									Contact Information
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								<div>
+									<p className="text-sm font-medium">Primary Phone</p>
+									<p className="text-sm text-muted-foreground">{campus.primaryPhone}</p>
+								</div>
+								{campus.secondaryPhone && (
+									<div>
+										<p className="text-sm font-medium">Secondary Phone</p>
+										<p className="text-sm text-muted-foreground">{campus.secondaryPhone}</p>
+									</div>
+								)}
+								<div>
+									<p className="text-sm font-medium">Email Address</p>
+									<p className="text-sm text-muted-foreground">{campus.email}</p>
+								</div>
+								<div>
+									<p className="text-sm font-medium">Emergency Contact</p>
+									<p className="text-sm text-muted-foreground">{campus.emergencyContact}</p>
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				</TabsContent>
+
+				<TabsContent value="classGroups">
+					<CampusClassGroups campusId={campusId} />
+				</TabsContent>
+
+				<TabsContent value="programs">
+					<CampusPrograms campusId={campusId} />
+				</TabsContent>
+
+				<TabsContent value="classes">
+					<CampusClasses campusId={campusId} />
+				</TabsContent>
+
+				<TabsContent value="teachers">
+					<CampusTeachers campusId={campusId} />
+				</TabsContent>
+
+				<TabsContent value="students">
+					<CampusStudents campusId={campusId} />
+				</TabsContent>
+			</Tabs>
+
+			{isEditFormOpen && (
+				<CampusForm 
+					isOpen={isEditFormOpen}
+					onClose={() => setIsEditFormOpen(false)}
+					campusId={campusId}
+				/>
+			)}
 		</div>
 	);
 };
