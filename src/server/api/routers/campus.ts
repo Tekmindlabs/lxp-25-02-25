@@ -6,7 +6,7 @@ import { DefaultRoles } from "@/utils/permissions";
 import { CampusUserService } from "@/server/services/CampusUserService";
 import { CampusClassService } from "@/server/services/CampusClassService";
 import type { Context } from "../trpc";
-import { Prisma } from "@prisma/client";
+import { type PrismaClient } from "@prisma/client";
 
 const campusCreateInput = z.object({ 
   name: z.string(),
@@ -267,26 +267,31 @@ export const campusRouter = createTRPCRouter({
     }))
     .query(async ({ ctx, input }) => {
       const where: Prisma.ProgramWhereInput = {
+        OR: input.search
+          ? [
+              {
+                name: { contains: input.search, mode: "insensitive" },
+              },
+              {
+                code: { contains: input.search, mode: "insensitive" },
+              },
+            ]
+          : undefined,
+        status: input.status,
         campuses: {
           some: {
-            id: input.campusId
-          }
+            id: input.campusId,
+          },
         },
-        ...(input.status && { status: input.status }),
-        ...(input.search && {
-          OR: [
-            { name: { contains: input.search, mode: "insensitive" as const } },
-            { code: { contains: input.search, mode: "insensitive" as const } },
-          ],
-        }),
       };
 
       return ctx.prisma.program.findMany({
         where,
         include: {
+          calendar: true,
           classGroups: true,
+          campuses: true,
         },
-        orderBy: { name: "asc" },
       });
     }),
 
@@ -297,46 +302,24 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where: Prisma.StudentProfileWhereInput = {
-        campusId: input.campusId,
-        ...(input.status && { status: input.status }),
-        ...(input.search && {
-          OR: [
-            {
-              user: {
-                firstName: {
-                  contains: input.search,
-                  mode: "insensitive" as const
-                }
-              }
-            },
-            {
-              user: {
-                lastName: {
-                  contains: input.search,
-                  mode: "insensitive" as const
-                }
-              }
-            },
-            {
-              studentId: {
-                contains: input.search,
-                mode: "insensitive" as const
-              }
-            }
-          ]
-        })
-      };
-
       return ctx.prisma.studentProfile.findMany({
-        where,
+        where: {
+          campus: {
+            id: input.campusId,
+          },
+          status: input.status,
+          user: input.search
+            ? {
+                OR: [
+                  { firstName: { contains: input.search, mode: "insensitive" } },
+                  { lastName: { contains: input.search, mode: "insensitive" } },
+                ],
+              }
+            : undefined,
+        },
         include: {
           user: true,
-          class: true
         },
-        orderBy: {
-          createdAt: "desc"
-        }
       });
     }),
 
@@ -347,40 +330,24 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where: Prisma.TeacherProfileWhereInput = {
-        campusId: input.campusId,
-        ...(input.status && { status: input.status }),
-        ...(input.search && {
-          OR: [
-            {
-              user: {
-                firstName: {
-                  contains: input.search,
-                  mode: "insensitive" as const
-                }
-              }
-            },
-            {
-              user: {
-                lastName: {
-                  contains: input.search,
-                  mode: "insensitive" as const
-                }
-              }
-            }
-          ]
-        })
-      };
-
       return ctx.prisma.teacherProfile.findMany({
-        where,
+        where: {
+          campus: {
+            id: input.campusId,
+          },
+          status: input.status,
+          user: input.search
+            ? {
+                OR: [
+                  { firstName: { contains: input.search, mode: "insensitive" } },
+                  { lastName: { contains: input.search, mode: "insensitive" } },
+                ],
+              }
+            : undefined,
+        },
         include: {
           user: true,
-          classes: true
         },
-        orderBy: {
-          createdAt: "desc"
-        }
       });
     }),
 
@@ -388,60 +355,46 @@ export const campusRouter = createTRPCRouter({
     .input(z.object({ 
       campusId: z.string(),
       search: z.string().optional(),
-      status: z.enum(["ACTIVE", "INACTIVE"]).optional()
+      status: z.enum(["ACTIVE", "INACTIVE", "COMPLETED"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const where: Prisma.CampusClassWhereInput = {
-        campusId: input.campusId,
-        ...(input.status && { status: input.status }),
-        ...(input.search && {
-          OR: [
-            { name: { contains: input.search, mode: "insensitive" as const } },
-            { code: { contains: input.search, mode: "insensitive" as const } }
-          ]
-        }),
-      };
-
       return ctx.prisma.class.findMany({
-        where,
+        where: {
+          classGroup: {
+            campus: {
+              id: input.campusId,
+            },
+          },
+          status: input.status,
+          OR: input.search
+            ? [
+                { name: { contains: input.search, mode: "insensitive" } },
+                { code: { contains: input.search, mode: "insensitive" } },
+              ]
+            : undefined,
+        },
         include: {
           classGroup: {
             include: {
-              program: {
-                select: {
-                  name: true
-                }
-              }
-            }
+              program: true,
+            },
           },
-          _count: {
-            select: {
-              students: true
-            }
-          },
-          teacherAssignments: {
+          teacherAllocations: {
             include: {
               teacher: {
                 include: {
-                  user: {
-                    select: {
-                      firstName: true,
-                      lastName: true
-                    }
-                  }
-                }
+                  user: true,
+                },
               },
-              subject: {
-                select: {
-                  name: true
-                }
-              }
-            }
-          }
+              subject: true,
+            },
+          },
+          _count: {
+            select: {
+              students: true,
+            },
+          },
         },
-        orderBy: {
-          createdAt: "desc"
-        }
       });
     }),
 

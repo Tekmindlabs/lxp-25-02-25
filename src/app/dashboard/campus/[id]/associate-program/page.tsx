@@ -1,31 +1,54 @@
 "use client";
 
 import { type FC } from "react";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const associateProgramSchema = z.object({
+  programId: z.string().min(1, "Program is required"),
+});
+
+type AssociateProgramForm = z.infer<typeof associateProgramSchema>;
 
 const AssociateProgramPage: FC = () => {
-  const params = useParams();
-  const campusId = params.id as string;
+  const searchParams = useSearchParams();
+  const campusId = searchParams.get("id") as string;
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: availablePrograms, isLoading } = api.program.getAll.useQuery();
-  const { data: campus } = api.campus.getById.useQuery(campusId);
-  const associateProgramMutation = api.campus.associateProgram.useMutation({
+  const { data } = api.program.getAll.useQuery({});
+  const { mutate: associateProgram } = api.campus.associateProgram.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Program associated successfully",
       });
       router.push(`/dashboard/campus/${campusId}`);
+      router.refresh();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -34,45 +57,52 @@ const AssociateProgramPage: FC = () => {
     },
   });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const form = useForm<AssociateProgramForm>({
+    resolver: zodResolver(associateProgramSchema),
+  });
 
-  if (!campus) {
-    return <div>Campus not found</div>;
-  }
+  const onSubmit = (data: AssociateProgramForm) => {
+    associateProgram({
+      campusId,
+      programId: data.programId,
+    });
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Associate Program with {campus.name}</CardTitle>
+        <CardTitle>Associate Program</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-4">
-            {availablePrograms?.map((program) => (
-              <Card key={program.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{program.name}</h3>
-                    <p className="text-sm text-gray-500">{program.description}</p>
-                  </div>
-                  <Button
-                    onClick={() =>
-                      associateProgramMutation.mutate({
-                        campusId,
-                        programId: program.id,
-                      })
-                    }
-                    disabled={associateProgramMutation.isLoading}
-                  >
-                    Associate
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="programId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Program</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a program" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {data?.programs?.map((program) => (
+                        <SelectItem key={program.id} value={program.id}>
+                          {program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Associate Program</Button>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
