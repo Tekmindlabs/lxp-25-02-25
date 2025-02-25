@@ -12,7 +12,10 @@ interface CampusProgramsProps {
 }
 
 const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
-  const { data: programs, isLoading } = api.campus.getPrograms.useQuery({ campusId });
+  const { data: programs, isLoading } = api.campus.getPrograms.useQuery({
+    campusId,
+    status: "ACTIVE",
+  });
 
   if (isLoading) {
     return (

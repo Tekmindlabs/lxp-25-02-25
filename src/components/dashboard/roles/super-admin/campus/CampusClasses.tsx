@@ -91,16 +91,16 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                 />
               </div>
               <Select
-                value={status ?? ""}
+                value={status ?? "ALL"}
                 onValueChange={(value) =>
-                  setStatus(value === "" ? undefined : value as ClassStatus)
+                  setStatus(value === "ALL" ? undefined : value as ClassStatus)
                 }
               >
                 <SelectTrigger className="h-8 w-[150px]">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="ALL">All</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="INACTIVE">Inactive</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
