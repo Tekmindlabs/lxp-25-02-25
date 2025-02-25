@@ -70,11 +70,11 @@ const CreateStudentPage: FC = () => {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Student added successfully",
+        description: "Student created successfully",
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -233,10 +233,10 @@ const CreateStudentPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={createStudentMutation.isLoading}
+              disabled={createStudentMutation.isPending}
               className="w-full"
             >
-              Add Student
+              Create Student
             </Button>
           </form>
         </Form>

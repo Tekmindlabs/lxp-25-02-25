@@ -27,6 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
+import { TeacherType } from "@prisma/client";
 
 const createTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -41,11 +44,11 @@ type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
 const CreateTeacherPage: FC = () => {
   const pathname = usePathname();
-  const campusId = pathname.split("/").slice(-3)[0] as string;
+  const pathParts = pathname.split("/");
+  const campusId = pathParts[3];
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: campus } = api.campus.getById.useQuery(campusId);
   const { data: classes } = api.campus.getClasses.useQuery({
     campusId,
     status: "ACTIVE",
@@ -55,20 +58,24 @@ const CreateTeacherPage: FC = () => {
   const form = useForm<CreateTeacherForm>({
     resolver: zodResolver(createTeacherSchema),
     defaultValues: {
-      isClassTeacher: false,
+      email: "",
+      firstName: "",
+      lastName: "",
+      classId: "",
       subjectIds: [],
+      isClassTeacher: false,
     },
   });
 
-  const createTeacherMutation = api.teacher.createTeacher.useMutation({
+  const createTeacherMutation = api.teacher.create.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Teacher added successfully",
+        description: "Teacher created successfully",
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -81,20 +88,16 @@ const CreateTeacherPage: FC = () => {
     createTeacherMutation.mutate({
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      teacherType: data.isClassTeacher ? "CLASS" : "SUBJECT",
+      teacherType: data.isClassTeacher ? TeacherType.CLASS_TEACHER : TeacherType.SUBJECT_TEACHER,
       subjectIds: data.subjectIds,
       classIds: [data.classId],
     });
   };
 
-  if (!campus) {
-    return <div>Campus not found</div>;
-  }
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add Teacher to {campus.name}</CardTitle>
+        <CardTitle>Create Teacher</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -245,10 +248,10 @@ const CreateTeacherPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={createTeacherMutation.isLoading}
+              disabled={createTeacherMutation.isPending}
               className="w-full"
             >
-              Add Teacher
+              Create Teacher
             </Button>
           </form>
         </Form>
