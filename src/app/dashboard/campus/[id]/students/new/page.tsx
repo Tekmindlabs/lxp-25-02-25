@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
-import { type TRPCClientError } from "@trpc/client";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server/dist/error/formatter";
 import { type AppRouter } from "@/server/api/root";
 
 const createStudentSchema = z.object({
@@ -74,9 +75,9 @@ const CreateStudentPage: FC = () => {
         title: "Success",
         description: "Student created successfully",
       });
-      router.push(`/dashboard/campus/${campusId}`);
+      router.push(`/dashboard/campus/${campusId}/students`);
     },
-    onError: (error: TRPCClientError<AppRouter>) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,

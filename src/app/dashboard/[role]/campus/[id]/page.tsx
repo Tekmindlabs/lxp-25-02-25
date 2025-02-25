@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from "next/navigation";
-import CampusView from "@/components/dashboard/roles/super-admin/campus/CampusView";
+import { CampusView } from "@/components/dashboard/roles/super-admin/campus/CampusView";
 
 export default function CampusPage() {
 	const pathname = usePathname();
@@ -9,7 +9,7 @@ export default function CampusPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<CampusView campusId={campusId} />
+			<CampusView id={campusId} />
 		</div>
 	);
 }

@@ -9,102 +9,28 @@ import { LuMapPin, LuPhone, LuMail, LuCalendar, LuBuilding, LuPlus } from "react
 import CampusForm from "./CampusForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampusClassGroups from "./CampusClassGroups";
-import CampusPrograms from "./CampusPrograms";
+import { CampusPrograms } from "./CampusPrograms";
 import CampusClasses from "./CampusClasses";
 import CampusTeachers from "./CampusTeachers";
 import CampusStudents from "./CampusStudents";
 import CampusCoordinators from "./CampusCoordinators";
 import { useRouter } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const CampusViewSkeleton: FC = () => {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-full" />
-      <div className="grid gap-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    </div>
-  );
-};
 
 interface CampusViewProps {
-  campusId: string;
+  id: string;
 }
 
-const CampusView: FC<CampusViewProps> = ({ campusId }) => {
+export const CampusView: FC<CampusViewProps> = ({ id }) => {
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const { data: campus, isLoading } = api.campus.getById.useQuery(id);
   const router = useRouter();
 
-  const {
-    data: campus,
-    isLoading,
-    error,
-    refetch
-  } = api.campus.getById.useQuery(
-    campusId,
-    {
-      retry: 2,
-      onError: (error) => {
-        console.error("Failed to fetch campus:", error);
-      },
-    }
-  );
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading Campus</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CampusViewSkeleton />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-500">Error Loading Campus</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-sm text-gray-600">{error.message}</p>
-          <div className="flex space-x-4">
-            <Button onClick={() => refetch()}>Retry</Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/dashboard/campus")}
-            >
-              Back to Campus List
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <div>Loading...</div>;
   }
 
   if (!campus) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Campus Not Found</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-sm text-gray-600">
-            The requested campus could not be found.
-          </p>
-          <Button onClick={() => router.push("/dashboard/campus")}>
-            Back to Campus List
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return <div>Campus not found</div>;
   }
 
   return (
@@ -227,57 +153,57 @@ const CampusView: FC<CampusViewProps> = ({ campusId }) => {
         </TabsContent>
 
         <TabsContent value="classGroups">
-          <CampusClassGroups campusId={campusId} />
+          <CampusClassGroups campusId={id} />
         </TabsContent>
 
         <TabsContent value="programs">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/associate-program`)}>
+            <Button onClick={() => router.push(`/dashboard/campus/${id}/associate-program`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Associate Program
             </Button>
           </div>
-          <CampusPrograms campusId={campusId} />
+          <CampusPrograms campusId={id} />
         </TabsContent>
 
         <TabsContent value="classes">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/classes/new`)}>
+            <Button onClick={() => router.push(`/dashboard/campus/${id}/classes/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Create Class
             </Button>
           </div>
-          <CampusClasses campusId={campusId} />
+          <CampusClasses campusId={id} />
         </TabsContent>
 
         <TabsContent value="teachers">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/teachers/new`)}>
+            <Button onClick={() => router.push(`/dashboard/campus/${id}/teachers/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Teacher
             </Button>
           </div>
-          <CampusTeachers campusId={campusId} />
+          <CampusTeachers campusId={id} />
         </TabsContent>
 
         <TabsContent value="students">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/students/new`)}>
+            <Button onClick={() => router.push(`/dashboard/campus/${id}/students/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Student
             </Button>
           </div>
-          <CampusStudents campusId={campusId} />
+          <CampusStudents campusId={id} />
         </TabsContent>
 
         <TabsContent value="coordinators">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => router.push(`/dashboard/campus/${campusId}/coordinators/new`)}>
+            <Button onClick={() => router.push(`/dashboard/campus/${id}/coordinators/new`)}>
               <LuPlus className="mr-2 h-4 w-4" />
               Add Coordinator
             </Button>
           </div>
-          <CampusCoordinators campusId={campusId} />
+          <CampusCoordinators campusId={id} />
         </TabsContent>
       </Tabs>
 
@@ -285,11 +211,9 @@ const CampusView: FC<CampusViewProps> = ({ campusId }) => {
         <CampusForm 
           isOpen={isEditFormOpen}
           onClose={() => setIsEditFormOpen(false)}
-          campusId={campusId}
+          campusId={id}
         />
       )}
     </div>
   );
 };
-
-export default CampusView;

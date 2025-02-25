@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type TRPCClientError } from "@trpc/client";
-import { type AppRouter } from "@/server/api/root";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GraduationCap } from "lucide-react";
@@ -41,12 +41,14 @@ export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
     isLoading,
     error,
     refetch
-  } = api.campus.getPrograms.useQuery(
-    {
-      campusId,
-      status: "ACTIVE",
-    }
-  );
+  } = api.campus.getPrograms.useQuery({
+    campusId,
+    status: "ACTIVE",
+  });
+
+  const handleAddProgram = () => {
+    router.push(`/dashboard/campus/${campusId}/programs/new`);
+  };
 
   if (isLoading) {
     return (
@@ -77,6 +79,14 @@ export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Programs</h3>
+        <Button onClick={handleAddProgram}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Program
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -86,9 +96,9 @@ export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
-            <div className="space-y-4">
-              {programs && programs.length > 0 ? (
-                programs.map((program) => (
+            {programs && programs.length > 0 ? (
+              <div className="space-y-4">
+                {programs.map((program) => (
                   <Card key={program.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -115,19 +125,37 @@ export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
                           {new Date(program.createdAt).toLocaleDateString()}
                         </div>
                       </div>
+                      <div className="mt-4 flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            router.push(`/dashboard/campus/${campusId}/programs/${program.id}`)
+                          }
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            router.push(`/dashboard/campus/${campusId}/programs/${program.id}/edit`)
+                          }
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
-                ))
-              ) : (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-center text-sm text-gray-600">
-                      No programs found. 
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-center text-sm text-gray-600">
+                    No programs found. Click the button above to add a new program.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>

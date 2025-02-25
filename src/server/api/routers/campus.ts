@@ -267,12 +267,16 @@ export const campusRouter = createTRPCRouter({
     }))
     .query(async ({ ctx, input }) => {
       const where = {
-        campusId: input.campusId,
+        campuses: {
+          some: {
+            id: input.campusId
+          }
+        },
         ...(input.status && { status: input.status }),
         ...(input.search && {
           OR: [
-            { name: { contains: input.search, mode: 'insensitive' } },
-            { code: { contains: input.search, mode: 'insensitive' } },
+            { name: { contains: input.search, mode: "insensitive" as const } },
+            { code: { contains: input.search, mode: "insensitive" as const } },
           ],
         }),
       };
@@ -293,30 +297,40 @@ export const campusRouter = createTRPCRouter({
       status: z.enum(["ACTIVE", "INACTIVE", "GRADUATED", "WITHDRAWN"]).optional()
     }))
     .query(async ({ ctx, input }) => {
-      const students = await ctx.prisma.studentProfile.findMany({
-        where: {
-          campusId: input.campusId,
-          status: input.status,
-          OR: input.search ? [
-            { user: { firstName: { contains: input.search, mode: 'insensitive' } } },
-            { user: { lastName: { contains: input.search, mode: 'insensitive' } } },
-            { studentId: { contains: input.search, mode: 'insensitive' } }
-          ] : undefined
-        },
+      const where = {
+        campusId: input.campusId,
+        ...(input.status && { status: input.status }),
+        ...(input.search && {
+          OR: [
+            { 
+              user: {
+                firstName: { contains: input.search, mode: "insensitive" as const }
+              }
+            },
+            { 
+              user: {
+                lastName: { contains: input.search, mode: "insensitive" as const }
+              }
+            },
+            { 
+              studentId: { contains: input.search, mode: "insensitive" as const }
+            }
+          ],
+        }),
+      };
+
+      return ctx.prisma.studentProfile.findMany({
+        where,
         include: {
           user: true,
-          campusClass: {
-            include: {
-              classGroup: true
-            }
+          class: true
+        },
+        orderBy: { 
+          user: {
+            firstName: "asc"
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
       });
-
-      return students;
     }),
 
   getTeachers: protectedProcedure
@@ -331,8 +345,11 @@ export const campusRouter = createTRPCRouter({
         ...(input.status && { status: input.status }),
         ...(input.search && {
           user: {
-            name: { contains: input.search, mode: 'insensitive' },
-          },
+            OR: [
+              { firstName: { contains: input.search, mode: "insensitive" as const } },
+              { lastName: { contains: input.search, mode: "insensitive" as const } }
+            ]
+          }
         }),
       };
 
@@ -340,12 +357,16 @@ export const campusRouter = createTRPCRouter({
         where,
         include: {
           user: true,
-          classes: true,
+          teacherAssignments: {
+            include: {
+              class: true
+            }
+          }
         },
         orderBy: {
           user: {
-            name: "asc",
-          },
+            firstName: "asc"
+          }
         },
       });
     }),

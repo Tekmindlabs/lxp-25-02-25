@@ -27,7 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
-import { type TRPCClientError } from "@trpc/client";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server/dist/error/formatter";
+import { TeacherType } from "@prisma/client";
 import { type AppRouter } from "@/server/api/root";
 
 const createTeacherSchema = z.object({
@@ -72,9 +74,9 @@ const CreateTeacherPage: FC = () => {
         title: "Success",
         description: "Teacher created successfully",
       });
-      router.push(`/dashboard/campus/${campusId}`);
+      router.push(`/dashboard/campus/${campusId}/teachers`);
     },
-    onError: (error: TRPCClientError<AppRouter>) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -87,7 +89,7 @@ const CreateTeacherPage: FC = () => {
     createTeacherMutation.mutate({
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      teacherType: data.isClassTeacher ? "CLASS" : "SUBJECT",
+      teacherType: data.isClassTeacher ? TeacherType.CLASS : TeacherType.SUBJECT,
       subjectIds: data.subjectIds,
       classIds: [data.classId],
     });
