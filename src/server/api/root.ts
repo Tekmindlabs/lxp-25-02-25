@@ -19,9 +19,11 @@ import { buildingRouter } from "./routers/building";
 import { floorRouter } from "./routers/floor";
 import { wingRouter } from "./routers/wing";
 import { roomRouter } from "./routers/room";
+import { academicYearRouter } from "./routers/academic-year";
 
 export const appRouter = createTRPCRouter({
   academicCalendar: academicCalendarRouter,
+  academicYear: academicYearRouter,
   campusRolePermission: campusRolePermissionRouter,
   role: roleRouter,
   activity: activityRouter,

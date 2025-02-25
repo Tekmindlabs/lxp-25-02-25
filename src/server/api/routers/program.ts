@@ -251,21 +251,29 @@ export const programRouter = createTRPCRouter({
 
     .mutation(async ({ ctx, input }) => {
       try {
-        // Fetch calendar and ensure it has an academic year and terms
+        // Fetch calendar and ensure it has an academic year
         const calendar = await ctx.prisma.calendar.findUnique({
           where: { id: input.calendarId },
-          include: { academicYear: true, terms: true }
+          include: { 
+            academicYear: true
+          }
         });
 
-        if (!calendar?.academicYear?.id) {
+        if (!calendar) {
           throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Calendar must have an academic year",
+            code: "BAD_REQUEST",
+            message: "Calendar not found",
+          });
+        }
+
+        if (!calendar.academicYear) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Calendar must have an academic year",
           });
         }
 
         const academicYearId = calendar.academicYear.id;
-        const termId = calendar.terms[0].id;
 
         // Validate coordinator if provided
         if (input.coordinatorId) {
@@ -315,18 +323,7 @@ if (input.campusIds) {
               order: index + 1,
               weight: 1.0,
               status: Status.ACTIVE,
-              academicYear: { connect: { id: academicYearId } },
-              academicTerms: {
-                create: {
-                name: term.name,
-                status: Status.ACTIVE,
-                assessmentWeightage: 100,
-                term: { connect: { id: termId } },
-                assessmentPeriods: {
-                  create: term.assessmentPeriods
-                }
-                }
-              }
+              academicYear: { connect: { id: academicYearId } }
               }))
             } : undefined,
 
@@ -475,87 +472,87 @@ if (input.campusIds) {
             // Delete class group assessment settings first
             await prisma.classGroupAssessmentSettings.deleteMany({
               where: {
-              assessmentSystemId: existingProgram.assessmentSystem.id
-              }
+                assessmentSystemId: existingProgram.assessmentSystem.id,
+              },
             });
 
             // Delete assessment submissions
             await prisma.assessmentSubmission.deleteMany({
               where: {
-              assessment: {
-                markingScheme: {
-                assessmentSystemId: existingProgram.assessmentSystem.id
-                }
-              }
-              }
+                assessment: {
+                  markingScheme: {
+                    assessmentSystemId: existingProgram.assessmentSystem.id,
+                  },
+                },
+              },
             });
 
             // Delete assessments
             await prisma.assessment.deleteMany({
               where: {
-              OR: [
-                {
-                markingScheme: {
-                  assessmentSystemId: existingProgram.assessmentSystem.id
-                }
-                },
-                {
-                rubric: {
-                  assessmentSystemId: existingProgram.assessmentSystem.id
-                }
-                }
-              ]
-              }
+                OR: [
+                  {
+                    markingScheme: {
+                      assessmentSystemId: existingProgram.assessmentSystem.id,
+                    },
+                  },
+                  {
+                    rubric: {
+                      assessmentSystemId: existingProgram.assessmentSystem.id,
+                    },
+                  },
+                ],
+              },
             });
 
             // Delete grading scales
             await prisma.gradingScale.deleteMany({
               where: {
-              markingScheme: {
-                assessmentSystemId: existingProgram.assessmentSystem.id
-              }
-              }
+                markingScheme: {
+                  assessmentSystemId: existingProgram.assessmentSystem.id,
+                },
+              },
             });
 
             // Delete rubric levels
             await prisma.rubricLevel.deleteMany({
               where: {
-              rubricCriteria: {
-                rubric: {
-                assessmentSystemId: existingProgram.assessmentSystem.id
-                }
-              }
-              }
+                rubricCriteria: {
+                  rubric: {
+                    assessmentSystemId: existingProgram.assessmentSystem.id,
+                  },
+                },
+              },
             });
 
             // Delete rubric criteria
             await prisma.rubricCriteria.deleteMany({
               where: {
-              rubric: {
-                assessmentSystemId: existingProgram.assessmentSystem.id
-              }
-              }
+                rubric: {
+                  assessmentSystemId: existingProgram.assessmentSystem.id,
+                },
+              },
             });
 
             // Delete rubrics
             await prisma.rubric.deleteMany({
               where: {
-              assessmentSystemId: existingProgram.assessmentSystem.id
-              }
+                assessmentSystemId: existingProgram.assessmentSystem.id,
+              },
             });
 
             // Delete marking schemes
             await prisma.markingScheme.deleteMany({
               where: {
-              assessmentSystemId: existingProgram.assessmentSystem.id
-              }
+                assessmentSystemId: existingProgram.assessmentSystem.id,
+              },
             });
 
             // Finally delete the assessment system
             await prisma.assessmentSystem.delete({
               where: {
-              id: existingProgram.assessmentSystem.id
-              }
+                id: existingProgram.assessmentSystem.id,
+              },
             });
             }
 
@@ -563,110 +560,98 @@ if (input.campusIds) {
           // Delete class group term settings
           await prisma.classGroupTermSettings.deleteMany({
             where: {
-            programTerm: {
-              programId: input.id
-            }
-            }
+              programTerm: {
+                programId: input.id,
+              },
+            },
           });
 
           // Delete assessment periods
           await prisma.termAssessmentPeriod.deleteMany({
             where: {
-            term: {
-              termStructure: {
-              programId: input.id
-              }
-            }
-            }
+              term: {
+                termStructure: {
+                  programId: input.id,
+                },
+              },
+            },
           });
-          
+
           // Delete academic terms
           await prisma.academicTerm.deleteMany({
             where: {
-            termStructure: {
-              programId: input.id
-            }
-            }
+              termStructure: {
+                programId: input.id,
+              },
+            },
           });
-          
+
           // Delete term structures
           await prisma.programTermStructure.deleteMany({
             where: {
-            programId: input.id
-            }
+              programId: input.id,
+            },
           });
           }
 
           // Update the program with new data
           return prisma.program.update({
-          where: { id: input.id },
-          data: {
-            name: input.name,
-            description: input.description,
-            calendar: input.calendarId ? { connect: { id: input.calendarId } } : undefined,
-            coordinator: input.coordinatorId ? { connect: { id: input.coordinatorId } } : undefined,
-            status: input.status,
-            termSystem: input.termSystem?.type,
-            termStructures: input.termSystem ? {
-            create: input.termSystem.terms.map((term, index) => ({
-              name: term.name,
-              startDate: term.startDate,
-              endDate: term.endDate,
-              order: index + 1,
-              weight: 1.0,
-              status: Status.ACTIVE,
-              academicYear: { connect: { id: existingAcademicYearId } },
-              academicTerms: {
-              create: {
-                name: term.name,
-                status: Status.ACTIVE,
-                assessmentWeightage: 100,
-                term: { connect: { id: existingTermId } },
-                assessmentPeriods: {
-                create: term.assessmentPeriods
-                }
-              }
-              }
-            }))
-            } : undefined,
-            assessmentSystem: input.assessmentSystem ? {
-              create: {
-              name: input.name + " Assessment System",
-              type: input.assessmentSystem.type,
-              markingSchemes: input.assessmentSystem.markingScheme ? {
-                create: [{
-                name: "Updated Marking Scheme",
-                maxMarks: input.assessmentSystem.markingScheme.maxMarks,
-                passingMarks: input.assessmentSystem.markingScheme.passingMarks,
-                gradingScale: {
-                  createMany: {
-                  data: input.assessmentSystem.markingScheme.gradingScale
-                  }
-                }
-                }]
+            where: { id: input.id },
+            data: {
+              name: input.name,
+              description: input.description,
+              calendar: input.calendarId ? { connect: { id: input.calendarId } } : undefined,
+              coordinator: input.coordinatorId ? { connect: { id: input.coordinatorId } } : undefined,
+              status: input.status,
+              termSystem: input.termSystem?.type,
+              termStructures: input.termSystem ? {
+                create: input.termSystem.terms.map((term, index) => ({
+                  name: term.name,
+                  startDate: term.startDate,
+                  endDate: term.endDate,
+                  order: index + 1,
+                  weight: 1.0,
+                  status: Status.ACTIVE,
+                  academicYear: { connect: { id: existingAcademicYearId } },
+                })),
               } : undefined,
-              rubrics: input.assessmentSystem.rubric ? {
-                create: [{
-                name: input.assessmentSystem.rubric.name,
-                description: input.assessmentSystem.rubric.description,
-                criteria: {
-                  create: input.assessmentSystem.rubric.criteria.map(criterion => ({
-                  name: criterion.name,
-                  description: criterion.description,
-                  levels: {
-                    createMany: {
-                    data: criterion.levels
-                    }
-                  }
-                  }))
-                }
-                }]
-              } : undefined
-              }
-
-            } : undefined
-          },
-          include: includeConfig
+              assessmentSystem: input.assessmentSystem ? {
+                create: {
+                  name: input.name + " Assessment System",
+                  type: input.assessmentSystem.type,
+                  markingSchemes: input.assessmentSystem.markingScheme ? {
+                    create: [{
+                      name: "Updated Marking Scheme",
+                      maxMarks: input.assessmentSystem.markingScheme.maxMarks,
+                      passingMarks: input.assessmentSystem.markingScheme.passingMarks,
+                      gradingScale: {
+                        createMany: {
+                          data: input.assessmentSystem.markingScheme.gradingScale,
+                        },
+                      },
+                    }],
+                  } : undefined,
+                  rubrics: input.assessmentSystem.rubric ? {
+                    create: [{
+                      name: input.assessmentSystem.rubric.name,
+                      description: input.assessmentSystem.rubric.description,
+                      criteria: {
+                        create: input.assessmentSystem.rubric.criteria.map(criterion => ({
+                          name: criterion.name,
+                          description: criterion.description,
+                          levels: {
+                            createMany: {
+                              data: criterion.levels,
+                            },
+                          },
+                        })),
+                      },
+                    }],
+                  } : undefined,
+                },
+              } : undefined,
+            },
+            include: includeConfig,
           });
         });
 

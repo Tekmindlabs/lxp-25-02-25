@@ -36,8 +36,7 @@ export const AcademicYearSettings = () => {
 	const { toast } = useToast();
 	const utils = api.useContext();
 
-	const { data: academicYears } = api.academicYear.getAllAcademicYears.useQuery();
-
+	const { data: academicYears, isLoading } = api.academicYear.getAll.useQuery();
 	const { data: calendars } = api.academicCalendar.getAllCalendars.useQuery();
 	const updateSettings = api.academicYear.updateSettings.useMutation({
 		onSuccess: () => {
