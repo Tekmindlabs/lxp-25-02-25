@@ -371,6 +371,57 @@ export const campusRouter = createTRPCRouter({
       });
     }),
 
+  getBuildings: protectedProcedure
+    .input(z.object({
+      campusId: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.building.findMany({
+        where: {
+          campusId: input.campusId,
+          status: "ACTIVE"
+        },
+        orderBy: {
+          code: "asc"
+        }
+      });
+    }),
+
+  getRooms: protectedProcedure
+    .input(z.object({
+      campusId: z.string(),
+      buildingId: z.string().optional()
+    }))
+    .query(async ({ ctx, input }) => {
+      if (!input.buildingId) return [];
+      
+      const building = await ctx.prisma.building.findFirst({
+        where: {
+          id: input.buildingId,
+          campusId: input.campusId,
+          status: "ACTIVE"
+        }
+      });
+
+      if (!building) return [];
+
+      // Get rooms through wings
+      const wings = await ctx.prisma.wing.findMany({
+        where: { buildingId: input.buildingId },
+        select: { id: true }
+      });
+
+      return ctx.prisma.room.findMany({
+        where: {
+          wingId: { in: wings.map(w => w.id) },
+          status: "ACTIVE"
+        },
+        orderBy: {
+          number: "asc"
+        }
+      });
+    }),
+
   getClasses: publicProcedure
     .input(z.object({ 
       campusId: z.string(),
@@ -381,9 +432,9 @@ export const campusRouter = createTRPCRouter({
       return ctx.prisma.class.findMany({
         where: {
           campusId: input.campusId,
-          isActive: input.status === "ACTIVE",
+          status: input.status || "ACTIVE",
           ...(input.search && {
-            name: { contains: input.search, mode: "insensitive" }
+            name: { contains: input.search, mode: Prisma.QueryMode.insensitive }
           })
         },
         include: {
@@ -392,18 +443,13 @@ export const campusRouter = createTRPCRouter({
               program: true
             }
           },
-          classSubjects: {
-            where: { isActive: true },
+          teachers: {
+            where: { status: "ACTIVE" },
             include: {
-              subject: true,
-              teachers: {
-                where: { isActive: true },
+              teacher: {
                 include: {
-                  teacher: {
-                    include: {
-                      user: true
-                    }
-                  }
+                  user: true,
+                  subjects: true
                 }
               }
             }
@@ -458,51 +504,6 @@ export const campusRouter = createTRPCRouter({
       });
     }),
 
-  getBuildings: protectedProcedure
-    .input(z.object({
-      campusId: z.string()
-    }))
-    .query(async ({ ctx, input }) => {
-      return ctx.prisma.building.findMany({
-        where: {
-          campusId: input.campusId,
-          isActive: true
-        },
-        orderBy: {
-          code: "asc"
-        }
-      });
-    }),
-
-  getRooms: protectedProcedure
-    .input(z.object({
-      campusId: z.string(),
-      buildingId: z.string().optional()
-    }))
-    .query(async ({ ctx, input }) => {
-      if (!input.buildingId) return [];
-      
-      const building = await ctx.prisma.building.findFirst({
-        where: {
-          id: input.buildingId,
-          campusId: input.campusId,
-          isActive: true
-        }
-      });
-
-      if (!building) return [];
-
-      return ctx.prisma.room.findMany({
-        where: {
-          buildingId: input.buildingId,
-          isActive: true
-        },
-        orderBy: {
-          number: "asc"
-        }
-      });
-    }),
-
   createClass: protectedProcedure
     .input(z.object({
       campusId: z.string(),
@@ -517,7 +518,13 @@ export const campusRouter = createTRPCRouter({
       const classGroup = await ctx.prisma.classGroup.findUnique({
         where: { id: input.classGroupId },
         include: {
-          program: true
+          program: {
+            include: {
+              subjects: {
+                where: { status: "ACTIVE" }
+              }
+            }
+          }
         }
       });
 
@@ -528,40 +535,26 @@ export const campusRouter = createTRPCRouter({
         });
       }
 
-      // Create base class data
-      const classData = {
-        name: input.name,
-        campusId: input.campusId,
-        classGroupId: input.classGroupId,
-        buildingId: input.buildingId,
-        roomId: input.roomId,
-        capacity: input.capacity,
-        isActive: true
-      };
-
       // Create the class
       const newClass = await ctx.prisma.class.create({
-        data: classData
-      });
-
-      // Get program subjects
-      const programSubjects = await ctx.prisma.programSubject.findMany({
-        where: {
-          programId: classGroup.program.id,
-          isActive: true
-        },
-        include: {
-          subject: true
+        data: {
+          name: input.name,
+          campusId: input.campusId,
+          classGroupId: input.classGroupId,
+          buildingId: input.buildingId,
+          roomId: input.roomId,
+          capacity: input.capacity,
+          status: "ACTIVE"
         }
       });
 
-      // Create subject associations
-      if (programSubjects.length > 0) {
-        await ctx.prisma.classSubject.createMany({
-          data: programSubjects.map(ps => ({
+      // Create teacher assignments for each subject
+      if (classGroup.program.subjects.length > 0) {
+        await ctx.prisma.teacherAssignment.createMany({
+          data: classGroup.program.subjects.map(subject => ({
             classId: newClass.id,
-            subjectId: ps.subject.id,
-            isActive: true
+            subjectId: subject.id,
+            status: "ACTIVE"
           }))
         });
       }
@@ -574,18 +567,13 @@ export const campusRouter = createTRPCRouter({
               program: true
             }
           },
-          classSubjects: {
-            where: { isActive: true },
+          teachers: {
+            where: { status: "ACTIVE" },
             include: {
-              subject: true,
-              teachers: {
-                where: { isActive: true },
+              teacher: {
                 include: {
-                  teacher: {
-                    include: {
-                      user: true
-                    }
-                  }
+                  user: true,
+                  subjects: true
                 }
               }
             }
@@ -797,28 +785,23 @@ export const campusRouter = createTRPCRouter({
       return ctx.prisma.classGroup.findMany({
         where: {
           programId: { in: programIds },
-          isActive: input.status === "ACTIVE",
+          status: input.status || "ACTIVE",
           ...(input.search && {
-            name: { contains: input.search, mode: "insensitive" }
+            name: { contains: input.search, mode: Prisma.QueryMode.insensitive }
           })
         },
         include: {
           program: true,
           classes: {
-            where: { isActive: true },
+            where: { status: "ACTIVE" },
             include: {
-              classSubjects: {
-                where: { isActive: true },
+              teachers: {
+                where: { status: "ACTIVE" },
                 include: {
-                  subject: true,
-                  teachers: {
-                    where: { isActive: true },
+                  teacher: {
                     include: {
-                      teacher: {
-                        include: {
-                          user: true
-                        }
-                      }
+                      user: true,
+                      subjects: true
                     }
                   }
                 }
