@@ -108,7 +108,7 @@ export const classRouter = createTRPCRouter({
 			const data: Prisma.ClassCreateInput = {
 				name: input.name,
 				classGroup: { connect: { id: input.classGroupId } },
-				campusId: input.campusId,
+				campus: { connect: { id: input.campusId } },
 				...(input.buildingId && { building: { connect: { id: input.buildingId } } }),
 				...(input.roomId && { room: { connect: { id: input.roomId } } }),
 				capacity: input.capacity,
@@ -207,9 +207,9 @@ export const classRouter = createTRPCRouter({
 				where: { id },
 				data: {
 					...data,
-					...(campusId && { campus: { connect: { id: campusId } } }),
-					...(buildingId && { building: { connect: { id: buildingId } } }),
-					...(roomId && { room: { connect: { id: roomId } } }),
+					...(campusId && { campusId }),
+					...(buildingId && { buildingId }),
+					...(roomId && { roomId }),
 				},
 				include: {
 					classGroup: {
@@ -375,7 +375,7 @@ export const classRouter = createTRPCRouter({
 							teachers: {
 								some: {
 									teacher: {
-										userId: ctx.session.user.id
+										userId: ctx.session?.user?.id ?? ''
 									}
 								}
 							}
