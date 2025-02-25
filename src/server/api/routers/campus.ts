@@ -524,7 +524,22 @@ export const campusRouter = createTRPCRouter({
       capacity: z.number()
     }))
     .mutation(async ({ ctx, input }) => {
-      // First get the class group to inherit settings
+      // First check if class with this name already exists in the class group
+      const existingClass = await ctx.prisma.class.findFirst({
+        where: {
+          name: input.name,
+          classGroupId: input.classGroupId
+        }
+      });
+
+      if (existingClass) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'A class with this name already exists in the selected class group'
+        });
+      }
+
+      // Get the class group to inherit settings
       const classGroup = await ctx.prisma.classGroup.findUnique({
         where: { id: input.classGroupId },
         include: {
@@ -535,64 +550,73 @@ export const campusRouter = createTRPCRouter({
       if (!classGroup) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Class group not found',
+          message: 'Class group not found'
         });
       }
 
-      // Create the class
-      const newClass = await ctx.prisma.class.create({
-        data: {
-          name: input.name,
-          campusId: input.campusId,
-          classGroupId: input.classGroupId,
-          buildingId: input.buildingId,
-          roomId: input.roomId,
-          capacity: input.capacity,
-          status: "ACTIVE"
-        }
-      });
+      try {
+        // Create the class
+        const newClass = await ctx.prisma.class.create({
+          data: {
+            name: input.name,
+            campusId: input.campusId,
+            classGroupId: input.classGroupId,
+            buildingId: input.buildingId,
+            roomId: input.roomId,
+            capacity: input.capacity,
+            status: "ACTIVE"
+          }
+        });
 
-      // Get program subjects
-      const subjects = await ctx.prisma.subject.findMany({
-        where: {
-          programs: {
-            some: {
-              id: classGroup.program.id
+        // Get program subjects
+        const subjects = await ctx.prisma.subject.findMany({
+          where: {
+            programs: {
+              some: {
+                id: classGroup.program.id
+              }
             }
           }
-        }
-      });
-
-      // Create teacher assignments
-      if (subjects.length > 0) {
-        await ctx.prisma.teacher.createMany({
-          data: subjects.map(subject => ({
-            classId: newClass.id,
-            subjectId: subject.id,
-            status: "ACTIVE"
-          }))
         });
-      }
 
-      return ctx.prisma.class.findUnique({
-        where: { id: newClass.id },
-        include: {
-          classGroup: {
-            include: {
-              program: true
-            }
-          },
-          teachers: {
-            include: {
-              teacher: {
-                include: {
-                  user: true
+        // Create teacher assignments
+        if (subjects.length > 0) {
+          await ctx.prisma.teacher.createMany({
+            data: subjects.map(subject => ({
+              classId: newClass.id,
+              subjectId: subject.id,
+              status: "ACTIVE"
+            }))
+          });
+        }
+
+        return ctx.prisma.class.findUnique({
+          where: { id: newClass.id },
+          include: {
+            classGroup: {
+              include: {
+                program: true
+              }
+            },
+            teachers: {
+              include: {
+                teacher: {
+                  include: {
+                    user: true
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      } catch (error) {
+        // Handle any other database errors
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create class. Please try again.',
+          cause: error
+        });
+      }
     }),
 
   getById: protectedProcedure
