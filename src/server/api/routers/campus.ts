@@ -44,6 +44,13 @@ const campusUpdateInput = z.object({
   gpsCoordinates: z.string().optional(),
 });
 
+interface ProgramSubject {
+  subject: {
+    id: string;
+    name: string;
+  }
+}
+
 export const campusRouter = createTRPCRouter({
   create: protectedProcedure
     .input(campusCreateInput)
@@ -378,8 +385,7 @@ export const campusRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return ctx.prisma.building.findMany({
         where: {
-          campusId: input.campusId,
-          status: "ACTIVE"
+          campusId: input.campusId
         },
         orderBy: {
           code: "asc"
@@ -395,31 +401,16 @@ export const campusRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       if (!input.buildingId) return [];
       
-      const building = await ctx.prisma.building.findFirst({
+      const rooms = await ctx.prisma.room.findMany({
         where: {
-          id: input.buildingId,
-          campusId: input.campusId,
-          status: "ACTIVE"
-        }
-      });
-
-      if (!building) return [];
-
-      // Get rooms through wings
-      const wings = await ctx.prisma.wing.findMany({
-        where: { buildingId: input.buildingId },
-        select: { id: true }
-      });
-
-      return ctx.prisma.room.findMany({
-        where: {
-          wingId: { in: wings.map(w => w.id) },
-          status: "ACTIVE"
+          buildingId: input.buildingId
         },
         orderBy: {
           number: "asc"
         }
       });
+
+      return rooms;
     }),
 
   getClasses: publicProcedure
@@ -432,7 +423,7 @@ export const campusRouter = createTRPCRouter({
       return ctx.prisma.class.findMany({
         where: {
           campusId: input.campusId,
-          status: input.status || "ACTIVE",
+          ...(input.status && { status: input.status }),
           ...(input.search && {
             name: { contains: input.search, mode: Prisma.QueryMode.insensitive }
           })
@@ -444,12 +435,10 @@ export const campusRouter = createTRPCRouter({
             }
           },
           teachers: {
-            where: { status: "ACTIVE" },
             include: {
               teacher: {
                 include: {
-                  user: true,
-                  subjects: true
+                  user: true
                 }
               }
             }
@@ -518,13 +507,7 @@ export const campusRouter = createTRPCRouter({
       const classGroup = await ctx.prisma.classGroup.findUnique({
         where: { id: input.classGroupId },
         include: {
-          program: {
-            include: {
-              subjects: {
-                where: { status: "ACTIVE" }
-              }
-            }
-          }
+          program: true
         }
       });
 
@@ -548,10 +531,21 @@ export const campusRouter = createTRPCRouter({
         }
       });
 
-      // Create teacher assignments for each subject
-      if (classGroup.program.subjects.length > 0) {
-        await ctx.prisma.teacherAssignment.createMany({
-          data: classGroup.program.subjects.map(subject => ({
+      // Get program subjects
+      const subjects = await ctx.prisma.subject.findMany({
+        where: {
+          programs: {
+            some: {
+              id: classGroup.program.id
+            }
+          }
+        }
+      });
+
+      // Create teacher assignments
+      if (subjects.length > 0) {
+        await ctx.prisma.teacher.createMany({
+          data: subjects.map(subject => ({
             classId: newClass.id,
             subjectId: subject.id,
             status: "ACTIVE"
@@ -568,12 +562,10 @@ export const campusRouter = createTRPCRouter({
             }
           },
           teachers: {
-            where: { status: "ACTIVE" },
             include: {
               teacher: {
                 include: {
-                  user: true,
-                  subjects: true
+                  user: true
                 }
               }
             }
@@ -785,7 +777,7 @@ export const campusRouter = createTRPCRouter({
       return ctx.prisma.classGroup.findMany({
         where: {
           programId: { in: programIds },
-          status: input.status || "ACTIVE",
+          ...(input.status && { status: input.status }),
           ...(input.search && {
             name: { contains: input.search, mode: Prisma.QueryMode.insensitive }
           })
@@ -793,15 +785,12 @@ export const campusRouter = createTRPCRouter({
         include: {
           program: true,
           classes: {
-            where: { status: "ACTIVE" },
             include: {
               teachers: {
-                where: { status: "ACTIVE" },
                 include: {
                   teacher: {
                     include: {
-                      user: true,
-                      subjects: true
+                      user: true
                     }
                   }
                 }
