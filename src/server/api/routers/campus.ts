@@ -400,17 +400,38 @@ export const campusRouter = createTRPCRouter({
     }))
     .query(async ({ ctx, input }) => {
       if (!input.buildingId) return [];
-      
-      const rooms = await ctx.prisma.room.findMany({
+
+      // First get all wings for this building
+      const wings = await ctx.prisma.wing.findMany({
         where: {
-          buildingId: input.buildingId
+          floor: {
+            buildingId: input.buildingId
+          }
+        },
+        select: { id: true }
+      });
+
+      const wingIds = wings.map(w => w.id);
+
+      // Then get rooms for these wings
+      return ctx.prisma.room.findMany({
+        where: {
+          wingId: {
+            in: wingIds
+          },
+          status: "ACTIVE"
+        },
+        include: {
+          wing: {
+            include: {
+              floor: true
+            }
+          }
         },
         orderBy: {
           number: "asc"
         }
       });
-
-      return rooms;
     }),
 
   getClasses: publicProcedure
