@@ -92,14 +92,13 @@ export const ClassForm = ({ isOpen, onClose, selectedClass, teachers, campuses }
 		selectedCampusId,
 		{ 
 			enabled: !!selectedCampusId,
-			onSettled: (data, error: any) => {
-				if (error) {
-					toast({
-						variant: "destructive",
-						title: "Error fetching class groups",
-						description: error.message
-					});
-				}
+			retry: false,
+			onError: (err: TRPCClientErrorLike<any>) => {
+				toast({
+					variant: "destructive",
+					title: "Error fetching class groups",
+					description: err.message
+				});
 			}
 		}
 	);

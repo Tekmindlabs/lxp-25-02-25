@@ -15,6 +15,37 @@ import {
 } from "@/components/ui/select";
 import { Users, Search } from "lucide-react";
 import { useState } from "react";
+import { Status } from "@prisma/client";
+
+type ClassStatus = "ACTIVE" | "INACTIVE" | "COMPLETED";
+
+interface CampusClassWithRelations {
+  id: string;
+  name: string;
+  code: string;
+  status: ClassStatus;
+  classGroup: {
+    name: string;
+    program: {
+      name: string;
+    };
+  };
+  _count: {
+    students: number;
+  };
+  teacherAllocations: Array<{
+    id: string;
+    teacher: {
+      user: {
+        firstName: string;
+        lastName: string;
+      };
+    };
+    subject: {
+      name: string;
+    };
+  }>;
+}
 
 interface CampusClassesProps {
   campusId: string;
@@ -22,9 +53,7 @@ interface CampusClassesProps {
 
 const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE" | "COMPLETED" | undefined>(
-    "ACTIVE"
-  );
+  const [status, setStatus] = useState<ClassStatus | undefined>("ACTIVE");
 
   const { data: classes, isLoading } = api.campus.getClasses.useQuery({
     campusId,
@@ -62,13 +91,16 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                 />
               </div>
               <Select
-                value={status}
-                onValueChange={(value: typeof status) => setStatus(value)}
+                value={status ?? ""}
+                onValueChange={(value) =>
+                  setStatus(value === "" ? undefined : value as ClassStatus)
+                }
               >
                 <SelectTrigger className="h-8 w-[150px]">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">All</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="INACTIVE">Inactive</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
@@ -85,7 +117,7 @@ const CampusClasses: FC<CampusClassesProps> = ({ campusId }) => {
                   No classes found
                 </p>
               ) : (
-                classes?.map((campusClass) => (
+                classes?.map((campusClass: CampusClassWithRelations) => (
                   <Card key={campusClass.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
