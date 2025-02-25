@@ -15,6 +15,21 @@ import CampusTeachers from "./CampusTeachers";
 import CampusStudents from "./CampusStudents";
 import CampusCoordinators from "./CampusCoordinators";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const CampusViewSkeleton: FC = () => {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-full" />
+      <div className="grid gap-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    </div>
+  );
+};
 
 interface CampusViewProps {
   campusId: string;
@@ -22,15 +37,74 @@ interface CampusViewProps {
 
 const CampusView: FC<CampusViewProps> = ({ campusId }) => {
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
-  const { data: campus, isLoading } = api.campus.getById.useQuery(campusId);
   const router = useRouter();
 
+  const {
+    data: campus,
+    isLoading,
+    error,
+    refetch
+  } = api.campus.getById.useQuery(
+    campusId,
+    {
+      retry: 2,
+      onError: (error) => {
+        console.error("Failed to fetch campus:", error);
+      },
+    }
+  );
+
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading Campus</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CampusViewSkeleton />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-500">Error Loading Campus</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-gray-600">{error.message}</p>
+          <div className="flex space-x-4">
+            <Button onClick={() => refetch()}>Retry</Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard/campus")}
+            >
+              Back to Campus List
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!campus) {
-    return <div>Campus not found</div>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Campus Not Found</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-gray-600">
+            The requested campus could not be found.
+          </p>
+          <Button onClick={() => router.push("/dashboard/campus")}>
+            Back to Campus List
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

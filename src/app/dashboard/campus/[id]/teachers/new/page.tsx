@@ -27,9 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
-import { type TRPCClientErrorLike } from "@trpc/client";
-import { type DefaultErrorShape } from "@trpc/server";
-import { TeacherType } from "@prisma/client";
+import { type TRPCClientError } from "@trpc/client";
+import { type AppRouter } from "@/server/api/root";
 
 const createTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -67,7 +66,7 @@ const CreateTeacherPage: FC = () => {
     },
   });
 
-  const createTeacherMutation = api.teacher.create.useMutation({
+  const createTeacherMutation = api.teacher.createTeacher.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -75,7 +74,7 @@ const CreateTeacherPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
+    onError: (error: TRPCClientError<AppRouter>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -88,7 +87,7 @@ const CreateTeacherPage: FC = () => {
     createTeacherMutation.mutate({
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      teacherType: data.isClassTeacher ? TeacherType.CLASS_TEACHER : TeacherType.SUBJECT_TEACHER,
+      teacherType: data.isClassTeacher ? "CLASS" : "SUBJECT",
       subjectIds: data.subjectIds,
       classIds: [data.classId],
     });

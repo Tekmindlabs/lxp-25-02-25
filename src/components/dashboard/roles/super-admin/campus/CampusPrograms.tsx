@@ -3,6 +3,12 @@
 import { type FC } from "react";
 import { api } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { type TRPCClientError } from "@trpc/client";
+import { type AppRouter } from "@/server/api/root";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GraduationCap } from "lucide-react";
@@ -11,32 +17,59 @@ interface CampusProgramsProps {
   campusId: string;
 }
 
-const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
-  const { data: programs, isLoading } = api.campus.getPrograms.useQuery({
-    campusId,
-    status: "ACTIVE",
-  });
+const ProgramsSkeleton: FC = () => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-10 w-24" />
+      </div>
+      <div className="grid gap-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
+  const router = useRouter();
+
+  const {
+    data: programs,
+    isLoading,
+    error,
+    refetch
+  } = api.campus.getPrograms.useQuery(
+    {
+      campusId,
+      status: "ACTIVE",
+    }
+  );
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Loading programs...</CardTitle>
+          <CardTitle>Loading Programs</CardTitle>
         </CardHeader>
+        <CardContent>
+          <ProgramsSkeleton />
+        </CardContent>
       </Card>
     );
   }
 
-  if (!programs?.length) {
+  if (error) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No programs</CardTitle>
+          <CardTitle className="text-red-500">Error Loading Programs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            This campus has no associated programs.
-          </p>
+          <p className="mb-4 text-sm text-gray-600">{error.message}</p>
+          <Button onClick={() => refetch()}>Retry</Button>
         </CardContent>
       </Card>
     );
@@ -54,36 +87,46 @@ const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
             <div className="space-y-4">
-              {programs.map((program) => (
-                <Card key={program.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{program.name}</CardTitle>
-                      <Badge variant={program.status === "ACTIVE" ? "default" : "secondary"}>
-                        {program.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div>
-                        <span className="font-medium">Term System: </span>
-                        {program.termSystem}
+              {programs && programs.length > 0 ? (
+                programs.map((program) => (
+                  <Card key={program.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{program.name}</CardTitle>
+                        <Badge variant={program.status === "ACTIVE" ? "default" : "secondary"}>
+                          {program.status}
+                        </Badge>
                       </div>
-                      {program.description && (
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
                         <div>
-                          <span className="font-medium">Description: </span>
-                          {program.description}
+                          <span className="font-medium">Term System: </span>
+                          {program.termSystem}
                         </div>
-                      )}
-                      <div>
-                        <span className="font-medium">Created: </span>
-                        {new Date(program.createdAt).toLocaleDateString()}
+                        {program.description && (
+                          <div>
+                            <span className="font-medium">Description: </span>
+                            {program.description}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium">Created: </span>
+                          {new Date(program.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
-                    </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-center text-sm text-gray-600">
+                      No programs found. 
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </ScrollArea>
         </CardContent>
@@ -91,5 +134,3 @@ const CampusPrograms: FC<CampusProgramsProps> = ({ campusId }) => {
     </div>
   );
 };
-
-export default CampusPrograms;
