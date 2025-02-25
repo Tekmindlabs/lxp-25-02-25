@@ -16,16 +16,36 @@ import {
 import { LuGraduationCap, LuSearch } from "react-icons/lu";
 import { useState } from "react";
 import type { StudentStatus } from "@/types/student";
+import type { User } from "@/types/user";
+import type { Class } from "@/types/class";
 
 interface CampusStudentsProps {
   campusId: string;
+}
+
+interface StudentWithRelations {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  dateOfBirth: Date | null;
+  userId: string;
+  classId: string | null;
+  parentId: string | null;
+  status: StudentStatus;
+  studentId: string;
+  user: User;
+  campusClass?: Class & {
+    classGroup?: {
+      name: string;
+    };
+  };
 }
 
 const CampusStudents: FC<CampusStudentsProps> = ({ campusId }) => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StudentStatus>("ACTIVE");
 
-  const { data: students, isLoading } = api.campus.getStudents.useQuery({
+  const { data: students, isLoading } = api.campus.getStudents.useQuery<StudentWithRelations[]>({
     campusId,
     search,
     status,
@@ -85,7 +105,7 @@ const CampusStudents: FC<CampusStudentsProps> = ({ campusId }) => {
                   No students found
                 </p>
               ) : (
-                students?.map((student) => (
+                students?.map((student: StudentWithRelations) => (
                   <Card key={student.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">

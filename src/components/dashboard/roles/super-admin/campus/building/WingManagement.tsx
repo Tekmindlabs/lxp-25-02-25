@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { WingForm } from "@/components/dashboard/building/WingForm";
+import { WingForm } from "@/components/dashboard/roles/super-admin/campus/building/WingForm";
 import { useToast } from "@/hooks/use-toast";
 import type { Wing } from "@prisma/client";
 import {

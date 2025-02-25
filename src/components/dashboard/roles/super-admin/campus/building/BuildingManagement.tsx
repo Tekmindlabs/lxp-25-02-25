@@ -2,8 +2,8 @@ import { useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { BuildingForm } from "@/components/dashboard/building/BuildingForm";
-import { useToast } from "../../../hooks/use-toast";
+import { BuildingForm } from "@/components/dashboard/roles/super-admin/campus/building/BuildingForm";
+import { useToast } from "../../../../../../hooks/use-toast";
 import type { Building } from "@prisma/client";
 import {
 	DropdownMenu,

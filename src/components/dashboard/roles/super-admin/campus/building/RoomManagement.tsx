@@ -2,8 +2,8 @@ import { useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { EnhancedClassroomForm } from "../classroom/EnhancedClassroomForm";
-import { useToast } from "../../../hooks/use-toast";
+import { EnhancedClassroomForm } from "../../../../classroom/EnhancedClassroomForm";
+import { useToast } from "../../../../../../hooks/use-toast";
 import type { Room, RoomStatus } from "@prisma/client";
 import {
 	DropdownMenu,
