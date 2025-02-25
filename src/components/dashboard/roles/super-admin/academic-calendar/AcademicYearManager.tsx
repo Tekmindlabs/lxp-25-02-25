@@ -5,13 +5,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import { Status } from "@prisma/client";
+import { Status, CalendarType } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface CalendarFormData {
 	name: string;
 	description?: string;
-	status: Status;
+	type: CalendarType;
+	startDate?: Date;
+	endDate?: Date;
+	status?: Status;
 }
 
 export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
@@ -19,6 +22,7 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 	const [formData, setFormData] = useState<CalendarFormData>({
 		name: "",
 		description: "",
+		type: CalendarType.PRIMARY,
 		status: Status.ACTIVE,
 	});
 
@@ -41,13 +45,20 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 		setFormData({
 			name: "",
 			description: "",
+			type: CalendarType.PRIMARY,
 			status: Status.ACTIVE,
 		});
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		createMutation.mutate(formData);
+		const currentYear = new Date().getFullYear();
+		createMutation.mutate({
+			...formData,
+			startDate: new Date(currentYear, 0, 1), // January 1st
+			endDate: new Date(currentYear, 11, 31), // December 31st
+			status: Status.ACTIVE,
+		});
 	};
 
 	return (
@@ -58,10 +69,10 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 				</DialogTrigger>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Create Calendar</DialogTitle>
+						<DialogTitle>Create New Calendar</DialogTitle>
 					</DialogHeader>
 					<form onSubmit={handleSubmit} className="space-y-4">
-						<div>
+						<div className="space-y-2">
 							<Label htmlFor="name">Name</Label>
 							<Input
 								id="name"
@@ -70,7 +81,7 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 								required
 							/>
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label htmlFor="description">Description</Label>
 							<Input
 								id="description"
@@ -78,8 +89,8 @@ export const CalendarManager = ({ calendars }: { calendars: any[] }) => {
 								onChange={(e) => setFormData({ ...formData, description: e.target.value })}
 							/>
 						</div>
-						<Button type="submit" disabled={createMutation.isLoading}>
-							{createMutation.isLoading ? "Creating..." : "Create Calendar"}
+						<Button type="submit" disabled={createMutation.isPending}>
+							{createMutation.isPending ? "Creating..." : "Create Calendar"}
 						</Button>
 					</form>
 				</DialogContent>
