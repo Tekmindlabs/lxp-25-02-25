@@ -19,12 +19,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
 
 const createCoordinatorSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  phone: z.string().min(1, "Phone number is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
 });
 
 type CreateCoordinatorForm = z.infer<typeof createCoordinatorSchema>;
@@ -39,7 +41,7 @@ const CreateCoordinatorPage: FC = () => {
     resolver: zodResolver(createCoordinatorSchema),
   });
 
-  const createCoordinatorMutation = api.coordinator.createCoordinator.useMutation({
+  const createCoordinatorMutation = api.coordinator.create.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -47,7 +49,7 @@ const CreateCoordinatorPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -60,7 +62,8 @@ const CreateCoordinatorPage: FC = () => {
     createCoordinatorMutation.mutate({
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      phone: data.phone,
+      phoneNumber: data.phoneNumber,
+      type: "CAMPUS_PROGRAM_COORDINATOR",
       campusId,
     });
   };
@@ -117,7 +120,7 @@ const CreateCoordinatorPage: FC = () => {
 
             <FormField
               control={form.control}
-              name="phone"
+              name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
@@ -131,7 +134,7 @@ const CreateCoordinatorPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={createCoordinatorMutation.isLoading}
+              disabled={createCoordinatorMutation.isPending}
               className="w-full"
             >
               Add Coordinator

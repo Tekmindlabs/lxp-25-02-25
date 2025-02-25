@@ -19,12 +19,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
 
 const editCoordinatorSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  phone: z.string().min(1, "Phone number is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
 });
 
 type EditCoordinatorForm = z.infer<typeof editCoordinatorSchema>;
@@ -37,7 +39,9 @@ const EditCoordinatorPage: FC = () => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: coordinator } = api.coordinator.getById.useQuery(coordinatorId);
+  const { data: coordinator } = api.coordinator.getOne.useQuery({
+    id: coordinatorId,
+  });
 
   const form = useForm<EditCoordinatorForm>({
     resolver: zodResolver(editCoordinatorSchema),
@@ -45,11 +49,11 @@ const EditCoordinatorPage: FC = () => {
       email: coordinator?.user.email,
       firstName: coordinator?.user.firstName,
       lastName: coordinator?.user.lastName,
-      phone: coordinator?.user.phone,
+      phoneNumber: coordinator?.user.phone || "",
     },
   });
 
-  const editCoordinatorMutation = api.coordinator.updateCoordinator.useMutation({
+  const editCoordinatorMutation = api.coordinator.update.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -57,7 +61,7 @@ const EditCoordinatorPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -71,7 +75,7 @@ const EditCoordinatorPage: FC = () => {
       id: coordinatorId,
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      phone: data.phone,
+      phoneNumber: data.phoneNumber,
     });
   };
 
@@ -131,7 +135,7 @@ const EditCoordinatorPage: FC = () => {
 
             <FormField
               control={form.control}
-              name="phone"
+              name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
@@ -145,7 +149,7 @@ const EditCoordinatorPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={editCoordinatorMutation.isLoading}
+              disabled={editCoordinatorMutation.isPending}
               className="w-full"
             >
               Update Coordinator

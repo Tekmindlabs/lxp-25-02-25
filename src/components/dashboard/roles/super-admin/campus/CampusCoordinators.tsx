@@ -8,6 +8,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Users2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { type Status } from "@prisma/client";
+
+interface CoordinatorWithUser {
+  id: string;
+  status: Status;
+  createdAt: Date;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+  };
+}
 
 interface CampusCoordinatorsProps {
   campusId: string;
@@ -15,7 +29,7 @@ interface CampusCoordinatorsProps {
 
 const CampusCoordinators: FC<CampusCoordinatorsProps> = ({ campusId }) => {
   const router = useRouter();
-  const { data: coordinators, isLoading } = api.campus.getCoordinators.useQuery({
+  const { data: coordinators, isLoading } = api.coordinator.getAllByCampus.useQuery({
     campusId,
     status: "ACTIVE",
   });
@@ -57,7 +71,7 @@ const CampusCoordinators: FC<CampusCoordinatorsProps> = ({ campusId }) => {
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
             <div className="space-y-4">
-              {coordinators.map((coordinator) => (
+              {coordinators.map((coordinator: CoordinatorWithUser) => (
                 <Card key={coordinator.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">

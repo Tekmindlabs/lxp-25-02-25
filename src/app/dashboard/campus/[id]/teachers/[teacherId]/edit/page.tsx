@@ -27,6 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
+import { type TeacherType } from "@prisma/client";
 
 const editTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -47,7 +50,7 @@ const EditTeacherPage: FC = () => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: teacher } = api.teacher.getById.useQuery(teacherId);
+  const { data: teacher } = api.teacher.getOne.useQuery({ id: teacherId });
   const { data: classes } = api.campus.getClasses.useQuery({
     campusId,
     status: "ACTIVE",
@@ -60,13 +63,13 @@ const EditTeacherPage: FC = () => {
       email: teacher?.user.email,
       firstName: teacher?.user.firstName,
       lastName: teacher?.user.lastName,
-      classId: teacher?.classId,
-      subjectIds: teacher?.subjects?.map(s => s.id) || [],
-      isClassTeacher: teacher?.type === "CLASS",
+      classId: teacher?.classes?.[0]?.classId,
+      subjectIds: teacher?.subjects?.map(s => s.subjectId) || [],
+      isClassTeacher: teacher?.teacherType === "CLASS_TEACHER",
     },
   });
 
-  const editTeacherMutation = api.teacher.updateTeacher.useMutation({
+  const editTeacherMutation = api.teacher.update.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -74,7 +77,7 @@ const EditTeacherPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -88,7 +91,7 @@ const EditTeacherPage: FC = () => {
       id: teacherId,
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
-      teacherType: data.isClassTeacher ? "CLASS" : "SUBJECT",
+      teacherType: data.isClassTeacher ? "CLASS_TEACHER" as TeacherType : "SUBJECT_TEACHER" as TeacherType,
       subjectIds: data.subjectIds,
       classIds: [data.classId],
     });
@@ -252,7 +255,7 @@ const EditTeacherPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={editTeacherMutation.isLoading}
+              disabled={editTeacherMutation.isPending}
               className="w-full"
             >
               Update Teacher

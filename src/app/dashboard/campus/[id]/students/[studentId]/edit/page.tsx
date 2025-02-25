@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { type TRPCClientErrorLike } from "@trpc/client";
+import { type DefaultErrorShape } from "@trpc/server";
 
 const editStudentSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -55,7 +57,7 @@ const EditStudentPage: FC = () => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: student } = api.student.getById.useQuery(studentId);
+  const { data: student } = api.student.getOne.useQuery({ id: studentId });
   const { data: classes } = api.campus.getClasses.useQuery({
     campusId,
     status: "ACTIVE",
@@ -73,7 +75,7 @@ const EditStudentPage: FC = () => {
     },
   });
 
-  const editStudentMutation = api.student.updateStudent.useMutation({
+  const editStudentMutation = api.student.update.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -81,7 +83,7 @@ const EditStudentPage: FC = () => {
       });
       router.push(`/dashboard/campus/${campusId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: TRPCClientErrorLike<DefaultErrorShape>) => {
       toast({
         title: "Error",
         description: error.message,
@@ -241,7 +243,7 @@ const EditStudentPage: FC = () => {
 
             <Button
               type="submit"
-              disabled={editStudentMutation.isLoading}
+              disabled={editStudentMutation.isPending}
               className="w-full"
             >
               Update Student
