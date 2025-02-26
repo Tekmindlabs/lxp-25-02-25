@@ -1,7 +1,8 @@
 "use client";
 
 import { type FC } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { use } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,6 +30,7 @@ import { X } from "lucide-react";
 import { type TRPCClientErrorLike } from "@trpc/client";
 import { TeacherType } from "@prisma/client";
 import { type AppRouter } from "@/server/api/root";
+import { Badge } from "@/components/ui/badge";
 
 const createTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -41,9 +43,13 @@ const createTeacherSchema = z.object({
 
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
-const CreateTeacherPage: FC = () => {
-  const pathname = usePathname();
-  const campusId = pathname.split("/")[3]; // Get ID from path
+interface CreateTeacherPageProps {
+  params: { id: string; role: string };
+}
+
+const CreateTeacherPage: FC<CreateTeacherPageProps> = ({ params }) => {
+  const unwrappedParams = use(params);
+  const campusId = unwrappedParams.id;
   const router = useRouter();
   const { toast } = useToast();
 

@@ -54,6 +54,7 @@ export const teacherRouter = createTRPCRouter({
 			specialization: z.string().optional(),
 			subjects: z.array(z.string()).optional(),
 			teacherType: z.nativeEnum(TeacherType).optional(),
+			campusId: z.string(),
 		}))
 		.mutation(async ({ ctx, input }) => {
 			const {
@@ -63,6 +64,7 @@ export const teacherRouter = createTRPCRouter({
 				specialization,
 				subjects,
 				teacherType,
+				campusId,
 			} = input;
 
 			const existingTeacher = await ctx.prisma.user.findFirst({
@@ -87,6 +89,7 @@ export const teacherRouter = createTRPCRouter({
 						create: {
 							specialization,
 							teacherType: teacherType || TeacherType.SUBJECT,
+							campusId,
 							...(subjects && {
 								subjects: {
 									create: subjects.map((subjectId) => ({
@@ -106,6 +109,21 @@ export const teacherRouter = createTRPCRouter({
 							subjects: {
 								include: {
 									subject: true
+								}
+							},
+							classes: {
+								include: {
+									class: {
+										include: {
+											classGroup: true,
+											students: true,
+											teachers: {
+												include: {
+													teacher: true
+												}
+											}
+										}
+									}
 								}
 							}
 						}

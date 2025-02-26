@@ -153,11 +153,22 @@ export const TeacherForm = ({
           ...data,
         });
       } else {
-        await createTeacher.mutateAsync(data);
+        // Ensure campusId is included in create mutation
+        if (!initialData.campusId) {
+          throw new Error("Campus ID is required");
+        }
+        await createTeacher.mutateAsync({
+          ...data,
+          campusId: initialData.campusId,
+        });
       }
       router.refresh();
+      if (initialData.campusId) {
+        router.push(`/dashboard/campus/${initialData.campusId}/teachers`);
+      }
     } catch (error) {
       console.error(teacherId ? "Failed to update teacher:" : "Failed to create teacher:", error);
+      toast.error(error.message || "An error occurred");
     } finally {
       setLoading(false);
     }
