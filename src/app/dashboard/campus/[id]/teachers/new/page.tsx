@@ -1,10 +1,9 @@
 "use client";
 
 import { type FC } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -30,7 +29,6 @@ import { X } from "lucide-react";
 import { type TRPCClientErrorLike } from "@trpc/client";
 import { TeacherType } from "@prisma/client";
 import { type AppRouter } from "@/server/api/root";
-import { Badge } from "@/components/ui/badge";
 
 const createTeacherSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -43,14 +41,9 @@ const createTeacherSchema = z.object({
 
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-const CreateTeacherPage: FC<PageProps> = ({ params }) => {
-  const campusId = params.id;
+const CreateTeacherPage: FC = () => {
+  const pathname = usePathname();
+  const campusId = pathname.split("/")[3]; // Get ID from path
   const router = useRouter();
   const { toast } = useToast();
 
@@ -58,7 +51,7 @@ const CreateTeacherPage: FC<PageProps> = ({ params }) => {
   const { data: classes } = api.campus.getClasses.useQuery({ campusId });
   const { data: subjects } = api.subject.getAll.useQuery();
 
-  const { mutate: createTeacher, isPending } = api.teacher.createTeacher.useMutation({
+  const { mutate: createTeacher, isPending } = api.teacher.create.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
@@ -225,25 +218,6 @@ const CreateTeacherPage: FC<PageProps> = ({ params }) => {
                       );
                     })}
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isClassTeacher"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                  </FormControl>
-                  <FormLabel className="!mt-0">Is Class Teacher</FormLabel>
                   <FormMessage />
                 </FormItem>
               )}
