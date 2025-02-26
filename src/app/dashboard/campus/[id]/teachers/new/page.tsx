@@ -1,10 +1,10 @@
 "use client";
 
 import { type FC } from "react";
-import { use } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -43,13 +43,9 @@ const createTeacherSchema = z.object({
 
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
-interface CreateTeacherPageProps {
-  params: { id: string; role: string };
-}
-
-const CreateTeacherPage: FC<CreateTeacherPageProps> = ({ params }) => {
-  const unwrappedParams = use(params);
-  const campusId = unwrappedParams.id;
+const CreateTeacherPage: FC = () => {
+  const pathname = usePathname();
+  const campusId = pathname.split("/")[3]; // Get ID from path
   const router = useRouter();
   const { toast } = useToast();
 
@@ -57,7 +53,7 @@ const CreateTeacherPage: FC<CreateTeacherPageProps> = ({ params }) => {
   const { data: classes } = api.campus.getClasses.useQuery({ campusId });
   const { data: subjects } = api.subject.getAll.useQuery();
 
-  const { mutate: createTeacher, isPending } = api.teacher.create.useMutation({
+  const { mutate: createTeacher, isPending } = api.teacher.createTeacher.useMutation({
     onSuccess: () => {
       toast({
         title: "Success",
