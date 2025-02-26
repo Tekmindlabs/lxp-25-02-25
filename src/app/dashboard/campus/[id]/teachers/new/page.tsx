@@ -43,9 +43,14 @@ const createTeacherSchema = z.object({
 
 type CreateTeacherForm = z.infer<typeof createTeacherSchema>;
 
-const CreateTeacherPage: FC = () => {
-  const pathname = usePathname();
-  const campusId = pathname.split("/")[3]; // Get ID from path
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+const CreateTeacherPage: FC<PageProps> = ({ params }) => {
+  const campusId = params.id;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -220,6 +225,25 @@ const CreateTeacherPage: FC = () => {
                       );
                     })}
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isClassTeacher"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0">Is Class Teacher</FormLabel>
                   <FormMessage />
                 </FormItem>
               )}
